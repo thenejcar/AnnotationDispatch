@@ -8,25 +8,50 @@
     <artifactId>example</artifactId>
     <version>1.0</version>
 
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.6.2</version>
-                <configuration>
-                    <!--<verbose>true</verbose>-->
-                    <compilerVersion>1.8</compilerVersion>
-                    <source>1.8</source>
-                    <target>1.8</target>
-                    <annotationProcessors>
-                        <annotationProcessor>si.kisek.annotationdispatch.ExampleProcessor</annotationProcessor>
-                    </annotationProcessors>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
-
+    <profiles>
+        <profile>
+            <id>annotation-processing</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <version>3.6.2</version>
+                        <configuration>
+                            <!--<verbose>true</verbose>-->
+                            <compilerVersion>1.8</compilerVersion>
+                            <source>1.8</source>
+                            <target>1.8</target>
+                            <annotationProcessors>
+                                <annotationProcessor>si.kisek.annotationdispatch.ExampleProcessor</annotationProcessor>
+                            </annotationProcessors>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>unmodified</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <version>3.6.2</version>
+                        <configuration>
+                            <compilerVersion>1.8</compilerVersion>
+                            <source>1.8</source>
+                            <target>1.8</target>
+                            <compilerArgument>-proc:none</compilerArgument>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
     <dependencies>
         <dependency>
             <groupId>si.kisek.annotationdispatch</groupId>

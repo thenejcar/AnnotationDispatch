@@ -10,7 +10,7 @@ echo
 echo "Starting the compilation in debug mode"
 echo "get the debugger ready..."
 echo
-mvnDebug -e clean compile
+mvnDebug -e -X clean compile
 
 echo
 echo "Compilation done, running the compiled TestClass"

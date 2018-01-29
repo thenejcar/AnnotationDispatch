@@ -235,7 +235,7 @@ public class ExampleProcessor extends AbstractProcessor {
                     tm.Throw(tm.NewClass(
                             null,
                             javacList(new JCTree.JCExpression[0]),
-                            tm.Ident(elements.getName("java.lang.RuntimeException")),
+                            tm.Ident(elements.getName("RuntimeException")),
                             javacList(Collections.singletonList(tm.Binary(
                                     JCTree.Tag.PLUS,
                                     tm.Literal("No method definition for runtime argument of type "),
@@ -254,7 +254,7 @@ public class ExampleProcessor extends AbstractProcessor {
 
             generatedMethods.put(methodName, method);
 
-            classDecl.defs.append(method);  // add the method to the class
+            classDecl.defs = classDecl.defs.append(method);  // add the method to the class
 
             List<Type> paramTypes = new ArrayList<>();
             for (JCTree.JCVariableDecl varDecl : method.params) {
@@ -262,23 +262,25 @@ public class ExampleProcessor extends AbstractProcessor {
             }
             Symbol.MethodSymbol methodSymbol = new Symbol.MethodSymbol(
                     method.mods.flags,
-                    methodName,
+                    generatedName,
                     new Type.MethodType(javacList(paramTypes), method.getReturnType().type, javacList(new Type[0]), symtab.methodClass),
                     classDecl.sym
             );
 
             // use reflection to add the generated method symbol to the parent class
 
+            Scope scope;
             try {
                 Field field = Symbol.ClassSymbol.class.getField("members_field");
                 Method enterSym = field.getType().getMethod("enter", Symbol.class);
 
-                Scope scope = (Scope) field.get(classDecl.sym); // get the class members field
+                scope = (Scope) field.get(classDecl.sym); // get the class members field
                 enterSym.invoke(scope, methodSymbol);  // enter the symbol
             } catch (Exception e) {
                 e.printStackTrace();
                 throw new RuntimeException("Unable to inject method symbol into the class, you are probably using the wrong compiler version");
             }
+            System.out.println("Method " + generatedName.toString() + " generated and added to the class");
 
         }
     }
