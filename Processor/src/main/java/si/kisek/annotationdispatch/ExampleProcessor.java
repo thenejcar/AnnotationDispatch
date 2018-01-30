@@ -55,14 +55,10 @@ public class ExampleProcessor extends AbstractProcessor {
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
 
-        System.out.println("Processor started");
 
         // processing for the ExampleAnnotation
         for (Element e : roundEnv.getElementsAnnotatedWith(ExampleAnnotation.class)) {
-            System.out.println("processing element: " + e);
-            System.out.print("Annotation content: ");
             String annotationContent = ((ExampleAnnotation) e.getAnnotation(ExampleAnnotation.class)).changeTo();
-            System.out.println(annotationContent);
             // example is used on a String and changes the initialization value to the value in the annotation
             Tree tree = trees.getPath(e).getLeaf();
 
@@ -291,7 +287,6 @@ public class ExampleProcessor extends AbstractProcessor {
     private void replaceMethods(RoundEnvironment roundEnv) {
         //TODO: check if we really need the class annotation, maybe we can find all places where annotated methods were called?
 
-
         // iterate over the whole class and replace method calls with the new method
         for (Name methodName : methods.keySet()) {
             for (Element e : roundEnv.getElementsAnnotatedWith(MultiDispatchClass_Demo.class)) {
@@ -314,6 +309,7 @@ public class ExampleProcessor extends AbstractProcessor {
                     }
                 }
 
+                System.out.println("Calls to \"" + methodName.toString() + "\" inside \"" + classTree.sym.toString() + "\" replaced with \"" + generatedMethods.get(methodName).name.toString() + "\"");
             }
         }
     }
