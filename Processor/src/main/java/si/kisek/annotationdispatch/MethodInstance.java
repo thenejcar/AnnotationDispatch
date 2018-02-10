@@ -1,64 +1,46 @@
 package si.kisek.annotationdispatch;
 
+import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.util.Name;
 
 import java.util.List;
+import java.util.Objects;
 
-public class MethodInstance {
+public class MethodInstance extends MethodModel{
 
-    private Name name;
-    private List<Type> parameters;
-    private JCTree.JCExpression returnValue;
-    private JCTree.JCModifiers modifiers;
-    private JCTree.JCClassDecl parentClass;
+    private List<Type> parameters; // parameter types for this particular instance
 
-    public MethodInstance(Name name, List<Type> parameters, JCTree.JCExpression returnValue, JCTree.JCModifiers modifiers, JCTree.JCClassDecl parentClass) {
-        this.name = name;
-        this.parameters = parameters;
-        this.returnValue = returnValue;
-        this.modifiers = modifiers;
-        this.parentClass = parentClass;
-    }
-
-    public Name getName() {
-        return name;
-    }
-
-    public void setName(Name name) {
-        this.name = name;
+    public MethodInstance(MethodModel model, List<Type> parameters) {
+        // model defines method's name, num. of parameters, return type, modifiers and parent class
+        super(model.getName(), model.getNumParameters(), model.getReturnValue(), model.getModifiers(), model.getParentClass());
+        this.parameters = parameters; // parameters for this particular instance
     }
 
     public List<Type> getParameters() {
         return parameters;
     }
 
-    public JCTree.JCModifiers getModifiers() {
-        return modifiers;
-    }
-
-    public JCTree.JCClassDecl getParentClass() {
-        return parentClass;
-    }
-
     public void setParameters(List<Type> parameters) {
         this.parameters = parameters;
     }
 
-    public JCTree.JCExpression getReturnValue() {
-        return returnValue;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof MethodInstance)) return false;
+        MethodInstance that = (MethodInstance) o;
+        return numParameters == that.numParameters && // same as for methodModel
+                Objects.equals(name, that.name) &&
+                Objects.equals(returnValue.type, that.returnValue.type) &&
+                Objects.equals(modifiers.flags, that.modifiers.flags) &&
+                Objects.equals(parentClass, that.parentClass) &&
+                Objects.equals(parameters, that.parameters);  // parameter types need to be the same
     }
 
-    public void setReturnValue(JCTree.JCExpression returnValue) {
-        this.returnValue = returnValue;
-    }
-
-    public void setModifiers(JCTree.JCModifiers modifiers) {
-        this.modifiers = modifiers;
-    }
-
-    public void setParentClass(JCTree.JCClassDecl parentClass) {
-        this.parentClass = parentClass;
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, numParameters, returnValue.type, modifiers.flags, parentClass, parameters);
     }
 }

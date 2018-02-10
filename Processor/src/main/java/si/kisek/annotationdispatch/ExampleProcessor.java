@@ -29,11 +29,11 @@ public class ExampleProcessor extends AbstractProcessor {
 
     private Trees trees;  // compiler's AST
     private TreeMaker tm;  // used to add subtrees to compiler's AST
-    private JavacElements elements;  // utility methods for op[erating with program elements
+    private JavacElements elements;  // utility methods for operating with program elements
     private Symtab symtab;  // javac's sym table
 
-    private Map<Name, List<MethodInstance>> methods = new HashMap<>();
-    private Map<Name, JCTree.JCMethodDecl> generatedMethods = new HashMap<>();
+    private Map<MethodModel, Set<MethodInstance>> originalMethods = new HashMap<>();
+    private Map<MethodModel, JCTree.JCMethodDecl> generatedMethods = new HashMap<>();
 
 
     //get the compiler trees
@@ -55,43 +55,24 @@ public class ExampleProcessor extends AbstractProcessor {
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
 
-
-        // processing for the ExampleAnnotation
-        for (Element e : roundEnv.getElementsAnnotatedWith(ExampleAnnotation.class)) {
-            String annotationContent = ((ExampleAnnotation) e.getAnnotation(ExampleAnnotation.class)).changeTo();
-            // example is used on a String and changes the initialization value to the value in the annotation
-            Tree tree = trees.getPath(e).getLeaf();
-
-            if (tree instanceof JCTree.JCVariableDecl) {
-                // TODO: reliably determine the type (probably something inside varDecl.varType .type or .sym)
-
-                JCTree.JCVariableDecl varDecl = (JCTree.JCVariableDecl) tree;
-                System.out.println("Overwriting the String declaration \"" + ((JCTree.JCLiteral) varDecl.init).getValue() + "\" with \"" + annotationContent + "\"");
-                varDecl.init = tm.Literal(annotationContent);
-
-            } else {
-                System.out.println("Something went wrong / annotated value is not a String declaration");
-            }
-        }
-
-        if (methods.size() > 0) {
+        if (originalMethods.size() > 0) {
             // already processed, skip
             return false;
         }
 
         // first pass
-        methods = processAnnotatedMethods(roundEnv);
-        if (methods.size() == 0) {
+        originalMethods = processAnnotatedMethods(roundEnv);
+        if (originalMethods.size() == 0) {
             // no annotated methods, skip
             return true;
         }
 
-
         generateNewMethods(roundEnv);
 
-        // second pass
-        replaceMethods(roundEnv);
+        // replace method calls with the generated method
+        replaceMethodCalls(roundEnv);
 
+        addNewMethods();
 
         return true;
     }
@@ -99,8 +80,8 @@ public class ExampleProcessor extends AbstractProcessor {
     /*
      * get all methods annotated with multidispatch annotation into a hashmap
      * */
-    private Map<Name, List<MethodInstance>> processAnnotatedMethods(RoundEnvironment roundEnv) {
-        Map<Name, List<MethodInstance>> map = new HashMap<Name, List<MethodInstance>>();
+    private Map<MethodModel, Set<MethodInstance>> processAnnotatedMethods(RoundEnvironment roundEnv) {
+        Map<MethodModel, Set<MethodInstance>> map = new HashMap<>();
 
         for (Element e : roundEnv.getElementsAnnotatedWith(MultiDispatch_Demo.class)) {
             Tree tree = trees.getPath(e).getLeaf();
@@ -121,8 +102,9 @@ public class ExampleProcessor extends AbstractProcessor {
                     parent = parent.getParentPath(); // move up until you hit a class declaration or null
                 }
 
-                map.putIfAbsent(name, new ArrayList<>());
-                map.get(name).add(new MethodInstance(name, parameterTypes, declaration.restype, declaration.mods, (JCTree.JCClassDecl) parent.getLeaf()));
+                MethodModel model = new MethodModel(name, parameterTypes.size(), declaration.restype, declaration.mods, (JCTree.JCClassDecl) parent.getLeaf());
+                map.putIfAbsent(model, new HashSet<>());
+                map.get(model).add(new MethodInstance(model, parameterTypes));
 
             } else {
                 throw new RuntimeException("@MultiDispatch_Demo annotations should be on method declarations only");
@@ -135,41 +117,17 @@ public class ExampleProcessor extends AbstractProcessor {
      * generate new methods that implement multiple dispatch
      * */
     private void generateNewMethods(RoundEnvironment roundEnv) {
-        if (methods == null) {
+        if (originalMethods == null) {
             throw new RuntimeException("Cannot start the second pass if methods map is null");
         }
 
         generatedMethods = new HashMap<>();
 
         // generate the switcher (in this example it's just hardcoded)
-        for (Name methodName : methods.keySet()) {
-            List<MethodInstance> instances = methods.get(methodName);
-            // TODO: check if methods with same name have the same return types, modifiers and parent class
-            JCTree.JCClassDecl classDecl = instances.get(0).getParentClass();
-            String random = UUID.randomUUID().toString().substring(0,8);
-            Name generatedName = elements.getName(methodName.toString() + "_" + random);  // generate a random name
+        for (MethodModel model : originalMethods.keySet()) {
+            Set<MethodInstance> instances = originalMethods.get(model);
 
-            JCTree.JCMethodDecl method = tm.MethodDef(
-                    instances.get(0).getModifiers(),            // modifiers from original method
-                    generatedName,
-                    instances.get(0).getReturnValue(),          // return type from original method
-                    javacList(new JCTree.JCTypeParameter[0]), // no type parameters
-                    javacList(new JCTree.JCVariableDecl[0]),  // arguments are added below
-                    javacList(new JCTree.JCExpression[0]),    // no exception throwing
-                    null,                               // body is added below
-                    null                           // no default value
-            );
-
-            // create the one parameter and add it to the method
-            Name arg1 = elements.getName("arg1");
-            Type arg1Type = new Type.ClassType(
-                    new Type.JCNoType(),
-                    com.sun.tools.javac.util.List.from(new Type[0]),
-                    elements.getTypeElement("java.lang.Object")
-            );
-            JCTree.JCVariableDecl parameter1 = tm.Param(arg1, arg1Type, method.sym);
-            method.params = javacList(Collections.singletonList(parameter1));
-
+            JCTree.JCMethodDecl generatedMethod = model.generateDispatchMethod(tm, elements);
 
             // TODO: sort the possible classes in correct order and store them in a nice structure (tree?)
             // hardcoded for now
@@ -192,12 +150,12 @@ public class ExampleProcessor extends AbstractProcessor {
             statements.add(
                     tm.If(
                             // if (arg1 instanceof Nekej)
-                            tm.Parens(tm.TypeTest(tm.Ident(arg1), tm.Ident(elements.getName("Nekej")))),
+                            tm.Parens(tm.TypeTest(tm.Ident(generatedMethod.params.head), tm.Ident(elements.getName("Nekej")))),
                             // then
                             tm.Block(0,
                                     javacList(Collections.singletonList(tm.If(
                                             // if (arg1 instanceof NekajDrugega)
-                                            tm.Parens(tm.TypeTest(tm.Ident(arg1),
+                                            tm.Parens(tm.TypeTest(tm.Ident(generatedMethod.params.head),
                                                     tm.Ident(elements.getName("NekajDrugega")))),
                                             // then return methodNekajDrugega((NekajDrugega) arg1)
                                             tm.Return(tm.Apply(
@@ -206,7 +164,7 @@ public class ExampleProcessor extends AbstractProcessor {
                                                     javacList(Collections.singletonList(
                                                             tm.TypeCast(
                                                                     methodNekajDrugega.getParameters().get(0).tsym.type,
-                                                                    tm.Ident(arg1)
+                                                                    tm.Ident(generatedMethod.params.head)
                                                             ))
                                                     ))),
                                             // else return methodNekej((Nekej) arg1)
@@ -216,7 +174,7 @@ public class ExampleProcessor extends AbstractProcessor {
                                                     javacList(Collections.singletonList(
                                                             tm.TypeCast(
                                                                     methodNekej.getParameters().get(0).tsym.type,
-                                                                    tm.Ident(arg1)
+                                                                    tm.Ident(generatedMethod.params.head)
                                                             ))
                                                     )))
                                             )
@@ -237,7 +195,7 @@ public class ExampleProcessor extends AbstractProcessor {
                                     tm.Literal("No method definition for runtime argument of type "),
                                     tm.Apply(
                                             javacList(new JCTree.JCExpression[0]),
-                                            tm.Select(tm.Ident(arg1), elements.getName("getClass")),
+                                            tm.Select(tm.Ident(generatedMethod.params.head), elements.getName("getClass")),
                                             javacList(new JCTree.JCExpression[0])
                                     )
                             ))),
@@ -246,25 +204,64 @@ public class ExampleProcessor extends AbstractProcessor {
                     )
             );
 
-            method.body = tm.Block(0, javacList(statements));
+            generatedMethod.body = tm.Block(0, javacList(statements));
 
-            generatedMethods.put(methodName, method);
+            generatedMethods.put(model, generatedMethod);
 
-            classDecl.defs = classDecl.defs.append(method);  // add the method to the class
+            System.out.println("Method " + generatedMethod.name.toString() + " generated");
+
+        }
+    }
+
+    /*
+     * replace calls to original methods with the generated ones
+     * */
+    private void replaceMethodCalls(RoundEnvironment roundEnv) {
+        //TODO: check if we really need the class annotation, maybe we can find all places where annotated methods were called?
+
+
+        for (MethodModel model : originalMethods.keySet()) {
+            Name newMethodName = generatedMethods.get(model).name;
+
+            for (Element e : roundEnv.getElementsAnnotatedWith(MultiDispatchClass_Demo.class)) {
+                JCTree.JCClassDecl classTree = (JCTree.JCClassDecl) trees.getPath(e).getLeaf();
+
+                for (MethodInstance oldMethod : originalMethods.get(model)) {
+                    ReplaceMethodsVisitor visitor = new ReplaceMethodsVisitor(oldMethod, newMethodName);
+                    visitor.visitClassDef(classTree);
+                }
+
+                System.out.println("Calls to " + model.getName() + " in " + classTree.name + " replaced with calls to " + newMethodName);
+
+            }
+        }
+
+    }
+
+    /*
+    * Inject generated method in the parent class of the original ones
+    * */
+    private void addNewMethods() {
+
+        for (MethodModel model : generatedMethods.keySet()) {
+            JCTree.JCMethodDecl generatedMethod = generatedMethods.get(model);
+
+            JCTree.JCClassDecl classDecl = model.getParentClass();
+
+            classDecl.defs = classDecl.defs.append(generatedMethod);  // add the method to the class
 
             List<Type> paramTypes = new ArrayList<>();
-            for (JCTree.JCVariableDecl varDecl : method.params) {
+            for (JCTree.JCVariableDecl varDecl : generatedMethod.params) {
                 paramTypes.add(varDecl.type);
             }
             Symbol.MethodSymbol methodSymbol = new Symbol.MethodSymbol(
-                    method.mods.flags,
-                    generatedName,
-                    new Type.MethodType(javacList(paramTypes), method.getReturnType().type, javacList(new Type[0]), symtab.methodClass),
+                    generatedMethod.mods.flags,
+                    generatedMethod.name,
+                    new Type.MethodType(javacList(paramTypes), generatedMethod.getReturnType().type, javacList(new Type[0]), symtab.methodClass),
                     classDecl.sym
             );
 
             // use reflection to add the generated method symbol to the parent class
-
             Scope scope;
             try {
                 Field field = Symbol.ClassSymbol.class.getField("members_field");
@@ -276,41 +273,8 @@ public class ExampleProcessor extends AbstractProcessor {
                 e.printStackTrace();
                 throw new RuntimeException("Unable to inject method symbol into the class, you are probably using the wrong compiler version");
             }
-            System.out.println("Method " + generatedName.toString() + " generated and added to the class");
 
-        }
-    }
-
-    /*
-     * replace calls to original methods with the generated ones
-     * */
-    private void replaceMethods(RoundEnvironment roundEnv) {
-        //TODO: check if we really need the class annotation, maybe we can find all places where annotated methods were called?
-
-        // iterate over the whole class and replace method calls with the new method
-        for (Name methodName : methods.keySet()) {
-            for (Element e : roundEnv.getElementsAnnotatedWith(MultiDispatchClass_Demo.class)) {
-                // TODO: in the real implementation we'll probably have a visitor of some sort
-
-                JCTree.JCClassDecl classTree = (JCTree.JCClassDecl) trees.getPath(e).getLeaf();
-                for (JCTree subtree : classTree.defs) {
-                    // only the methods are supported for now
-                    if (subtree instanceof JCTree.JCMethodDecl) {
-                        for (JCTree.JCStatement statement : ((JCTree.JCMethodDecl) subtree).body.stats) {
-                            // the visior would visit everything, this code supports just the simple call from main method
-                            if (statement instanceof JCTree.JCExpressionStatement && ((JCTree.JCExpressionStatement) statement).getExpression() instanceof JCTree.JCMethodInvocation) {
-                                JCTree.JCMethodInvocation invocation = (JCTree.JCMethodInvocation) ((JCTree.JCExpressionStatement) statement).getExpression();
-                                if (invocation.meth instanceof JCTree.JCIdent && ((JCTree.JCIdent) invocation.meth).name.equals(methodName)) {
-                                    //replace with the generated method
-                                    ((JCTree.JCIdent) invocation.meth).name = generatedMethods.get(methodName).name;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                System.out.println("Calls to \"" + methodName.toString() + "\" inside \"" + classTree.sym.toString() + "\" replaced with \"" + generatedMethods.get(methodName).name.toString() + "\"");
-            }
+            System.out.println("Method " + generatedMethod.name + " added to " + classDecl.name);
         }
     }
 
