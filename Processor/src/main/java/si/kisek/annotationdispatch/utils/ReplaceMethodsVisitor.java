@@ -1,8 +1,9 @@
-package si.kisek.annotationdispatch;
+package si.kisek.annotationdispatch.utils;
 
 import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.TreeTranslator;
 import com.sun.tools.javac.util.Name;
+import si.kisek.annotationdispatch.models.MethodInstance;
 
 
 public class ReplaceMethodsVisitor extends TreeTranslator {

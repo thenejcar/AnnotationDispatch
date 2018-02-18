@@ -1,4 +1,4 @@
-package si.kisek.annotationdispatch;
+package si.kisek.annotationdispatch.models;
 
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.model.JavacElements;
@@ -104,7 +104,7 @@ public class MethodModel {
         List<JCTree.JCVariableDecl> parameters = new ArrayList<>();
         for (int i=0; i<numParameters; i++) {
             parameters.add(tm.Param(
-                    elements.getName("arg1"),
+                    elements.getName("arg" + i),
                     new Type.ClassType(
                             new Type.JCNoType(),
                             com.sun.tools.javac.util.List.from(new Type[0]),
