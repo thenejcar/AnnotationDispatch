@@ -26,7 +26,7 @@
                             <source>1.8</source>
                             <target>1.8</target>
                             <annotationProcessors>
-                                <annotationProcessor>si.kisek.annotationdispatch.ExampleProcessor</annotationProcessor>
+                                <annotationProcessor>si.kisek.annotationdispatch.Processor</annotationProcessor>
                             </annotationProcessors>
                         </configuration>
                     </plugin>

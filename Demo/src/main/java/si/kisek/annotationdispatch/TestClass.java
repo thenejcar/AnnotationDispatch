@@ -1,7 +1,7 @@
 package si.kisek.annotationdispatch;
 
 
-@MultiDispatchClass_Demo
+@MultiDispatchClass
 public class TestClass {
 
     static class Nekej {
@@ -25,6 +25,7 @@ public class TestClass {
     }
 
     static class Sesalec extends Zival {
+        @Override
         String describe() {
             return "Sesalec";
         }
@@ -147,6 +148,7 @@ public class TestClass {
         Drevo iglavec = new Iglavec();
         Drevo smreka = new Smreka();
 
+        pleza(macek, drevo);
         pleza(zival, drevo);
         pleza(maineCoon, hrast);
         pleza(macek, lipa);
@@ -185,75 +187,75 @@ public class TestClass {
         kdoJeParameter(n1, nd);
     }
 
-    @MultiDispatch_Demo
+    @MultiDispatch
     static void pleza(Siamec o1, Hrast o2) {
         System.out.println(o1.describe() + " pleza na " + o2.describe() + " = Siamec pleza na Hrast");
     }
 
-    @MultiDispatch_Demo
+    @MultiDispatch
     static void pleza(Siamec o1, Lipa o2) {
         System.out.println(o1.describe() + " pleza na " + o2.describe() + " = Siamec pleza na Lipo");
     }
 
-    @MultiDispatch_Demo
+    @MultiDispatch
     static void pleza(MaineCoon o1, Listavec o2) {
         System.out.println(o1.describe() + " pleza na " + o2.describe() + " = Maine Coon pleza na Listavec");
     }
 
-    @MultiDispatch_Demo
+    @MultiDispatch
     static void pleza(Macek o1, Lipa o2) {
         System.out.println(o1.describe() + " pleza na " + o2.describe() + " = Macek pleza na Lipo");
     }
 
-    @MultiDispatch_Demo
+    @MultiDispatch
     static void pleza(Macek o1, Hrast o2) {
         System.out.println(o1.describe() + " pleza na " + o2.describe() + " = Macek pleza na Hrast");
     }
 
-    @MultiDispatch_Demo
+    @MultiDispatch
     static void pleza(Macek o1, Drevo o2) {
         System.out.println(o1.describe() + " pleza na " + o2.describe() + " = Macek pleza na Drevo");
     }
 
-    @MultiDispatch_Demo
+    @MultiDispatch
     static void pleza(Pes o1, Hrast o2) {
         System.out.println(o1.describe() + " pleza na " + o2.describe() + " = Pes pleza na Hrast");
     }
 
-    @MultiDispatch_Demo
+    @MultiDispatch
     static void pleza(Mis o1, Drevo o2) {
         System.out.println(o1.describe() + " pleza na " + o2.describe() + " = Mis pleza na Drevo");
     }
 
-    @MultiDispatch_Demo
+    @MultiDispatch
     static void pleza(Sesalec o1, Drevo o2) {
         System.out.println(o1.describe() + " pleza na " + o2.describe() + " = Sesalec pleza na Drevo");
     }
 
-    @MultiDispatch_Demo
+    @MultiDispatch
     static void pleza(Piton o1, Drevo o2) {
         System.out.println(o1.describe() + " pleza na " + o2.describe() + " = Piton pleza na Drevo");
     }
 
-    @MultiDispatch_Demo
+    @MultiDispatch
     static void pleza(Plazilec o1, Lipa o2) {
         System.out.println(o1.describe() + " pleza na " + o2.describe() + " = Plazilec pleza na Lipo");
     }
 
-    @MultiDispatch_Demo
+    @MultiDispatch
     static void pleza(Zival o1, Drevo o2) {
         System.out.println(o1.describe() + " pleza na " + o2.describe() + " = Zival pleza na Drevo");
     }
 
 
-    @MultiDispatch_Demo
+    @MultiDispatch
     static String kdoJeParameter(Nekej n) {
         String description = "parameter je nekej";
         System.out.println(description);
         return description;
     }
 
-    @MultiDispatch_Demo
+    @MultiDispatch
     static String kdoJeParameter(NekajDrugega t) {
         String description = "parameter je nekaj drugega";
         System.out.println(description);

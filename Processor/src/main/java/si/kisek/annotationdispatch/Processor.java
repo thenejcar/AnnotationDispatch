@@ -30,9 +30,9 @@ import java.util.*;
 
 import static si.kisek.annotationdispatch.utils.Utils.javacList;
 
-@SupportedAnnotationTypes({"si.kisek.annotationdispatch.ExampleAnnotation", "si.kisek.annotationdispatch.MultiDispatch_Demo", "si.kisek.annotationdispatch.MultiDispatchClass_Demo"})
+@SupportedAnnotationTypes({"si.kisek.annotationdispatch.ExampleAnnotation", "si.kisek.annotationdispatch.MultiDispatch", "si.kisek.annotationdispatch.MultiDispatchClass"})
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
-public class ExampleProcessor extends AbstractProcessor {
+public class Processor extends AbstractProcessor {
 
     private Trees trees;  // compiler's AST
     private TreeMaker tm;  // used to add subtrees to compiler's AST
@@ -92,7 +92,7 @@ public class ExampleProcessor extends AbstractProcessor {
     private Map<MethodModel, Set<MethodInstance>> processAnnotatedMethods(RoundEnvironment roundEnv) {
         Map<MethodModel, Set<MethodInstance>> map = new HashMap<>();
 
-        for (Element e : roundEnv.getElementsAnnotatedWith(MultiDispatch_Demo.class)) {
+        for (Element e : roundEnv.getElementsAnnotatedWith(MultiDispatch.class)) {
             Tree tree = trees.getPath(e).getLeaf();
             if (tree instanceof JCTree.JCMethodDecl) {
                 JCTree.JCMethodDecl declaration = (JCTree.JCMethodDecl) tree;
@@ -168,7 +168,7 @@ public class ExampleProcessor extends AbstractProcessor {
         for (MethodModel model : originalMethods.keySet()) {
             Name newMethodName = generatedMethods.get(model).name;
 
-            for (Element e : roundEnv.getElementsAnnotatedWith(MultiDispatchClass_Demo.class)) {
+            for (Element e : roundEnv.getElementsAnnotatedWith(MultiDispatchClass.class)) {
                 JCTree.JCClassDecl classTree = (JCTree.JCClassDecl) trees.getPath(e).getLeaf();
 
                 for (MethodInstance oldMethod : originalMethods.get(model)) {

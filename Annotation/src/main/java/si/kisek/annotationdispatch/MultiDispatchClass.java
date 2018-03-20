@@ -7,4 +7,4 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
-public @interface MultiDispatchClass_Demo {}
+public @interface MultiDispatchClass {}
