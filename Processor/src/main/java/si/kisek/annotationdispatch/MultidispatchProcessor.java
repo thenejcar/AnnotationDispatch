@@ -16,8 +16,6 @@ import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.util.Name;
 import si.kisek.annotationdispatch.models.MethodInstance;
 import si.kisek.annotationdispatch.models.MethodModel;
-import si.kisek.annotationdispatch.models.MethodSwitcher;
-import si.kisek.annotationdispatch.utils.CodeGenerator;
 import si.kisek.annotationdispatch.utils.ReplaceMethodsVisitor;
 
 import javax.annotation.processing.*;
@@ -30,26 +28,31 @@ import java.util.*;
 
 import static si.kisek.annotationdispatch.utils.Utils.javacList;
 
-@SupportedAnnotationTypes({"si.kisek.annotationdispatch.ExampleAnnotation", "si.kisek.annotationdispatch.MultiDispatch", "si.kisek.annotationdispatch.MultiDispatchClass"})
+
+@SupportedAnnotationTypes({
+        "si.kisek.annotationdispatch.ExampleAnnotation",
+        "si.kisek.annotationdispatch.MultiDispatch",
+        "si.kisek.annotationdispatch.MultiDispatchClass",
+        "si.kisek.annotationdispatch.MultiDispatchVisitable",
+        "si.kisek.annotationdispatch.MultiDispatchVisitableBase"
+})
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
-public class Processor extends AbstractProcessor {
+public abstract class MultidispatchProcessor extends AbstractProcessor {
 
-    private Trees trees;  // compiler's AST
-    private TreeMaker tm;  // used to add subtrees to compiler's AST
-    private JavacElements elements;  // utility methods for operating with program elements
-    private JavacTypes types;  // utility methods for operating with types
-    private Symtab symtab;  // javac's sym table
+    Trees trees;  // compiler's AST
+    TreeMaker tm;  // used to add subtrees to compiler's AST
+    JavacElements elements;  // utility methods for operating with program elements
+    JavacTypes types;  // utility methods for operating with types
+    Symtab symtab;  // javac's sym table
 
-    private Map<MethodModel, Set<MethodInstance>> originalMethods = new HashMap<>();
-    private Map<MethodModel, JCTree.JCMethodDecl> generatedMethods = new HashMap<>();
-
+    Map<MethodModel, Set<MethodInstance>> originalMethods = new HashMap<>();
+    Map<MethodModel, JCTree.JCMethodDecl> generatedMethods = new HashMap<>();
 
     //get the compiler trees
     @Override
     public void init(ProcessingEnvironment processingEnv) {
         super.init(processingEnv);
         trees = Trees.instance(processingEnv);
-
         if (processingEnv instanceof JavacProcessingEnvironment) {
             tm = TreeMaker.instance(((JavacProcessingEnvironment) processingEnv).getContext());
             elements = (JavacElements) processingEnv.getElementUtils();
@@ -61,35 +64,10 @@ public class Processor extends AbstractProcessor {
         }
     }
 
-    @Override
-    public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-
-        if (originalMethods.size() > 0) {
-            // already processed, skip
-            return false;
-        }
-
-        // first pass
-        originalMethods = processAnnotatedMethods(roundEnv);
-        if (originalMethods.size() == 0) {
-            // no annotated methods, skip
-            return true;
-        }
-
-        generateNewMethods(roundEnv);
-
-        // replace method calls with the generated method
-        replaceMethodCalls(roundEnv);
-
-        addNewMethods();
-
-        return true;
-    }
-
     /*
      * get all methods annotated with multidispatch annotation into a hashmap
      * */
-    private Map<MethodModel, Set<MethodInstance>> processAnnotatedMethods(RoundEnvironment roundEnv) {
+    protected Map<MethodModel, Set<MethodInstance>> processAnnotatedMethods(RoundEnvironment roundEnv) {
         Map<MethodModel, Set<MethodInstance>> map = new HashMap<>();
 
         for (Element e : roundEnv.getElementsAnnotatedWith(MultiDispatch.class)) {
@@ -122,70 +100,11 @@ public class Processor extends AbstractProcessor {
         return map;
     }
 
+
     /*
-     * generate new methods that implement multiple dispatch
+     * Inject generated method in the parent class of the original ones
      * */
-    private void generateNewMethods(RoundEnvironment roundEnv) {
-        if (originalMethods == null) {
-            throw new RuntimeException("Cannot start the second pass if methods map is null");
-        }
-
-        generatedMethods = new HashMap<>();
-
-        // generate the switcher (in this example it's just hardcoded)
-        for (MethodModel model : originalMethods.keySet()) {
-
-            JCTree.JCMethodDecl generatedMethod = model.generateDispatchMethod(tm, elements);
-            Set<MethodInstance> instances = originalMethods.get(model);
-
-            MethodSwitcher methodSwitcher = new MethodSwitcher(types, model, instances);
-
-            CodeGenerator codeGenerator = new CodeGenerator(tm, elements, generatedMethod);
-            List<JCTree.JCStatement> statements = new ArrayList<>();
-            statements.add(codeGenerator.generateIfInstanceOf(methodSwitcher.getRoot()));
-
-            // throw exception if none of the branches worked
-            statements.add(
-                    // throw new RuntimeException("No method definition for runtime argument of type " + arg1.getClass())
-                    codeGenerator.generateDefaultThrowStat(generatedMethod)
-            );
-
-            generatedMethod.body = tm.Block(0, javacList(statements));
-
-            generatedMethods.put(model, generatedMethod);
-
-            System.out.println("Method " + generatedMethod.name.toString() + " generated");
-
-        }
-    }
-
-    /*
-     * replace calls to original methods with the generated ones
-     * */
-    private void replaceMethodCalls(RoundEnvironment roundEnv) {
-        //TODO: check if we really need the class annotation, maybe we can find all places where annotated methods were called?
-
-        for (MethodModel model : originalMethods.keySet()) {
-            Name newMethodName = generatedMethods.get(model).name;
-
-            for (Element e : roundEnv.getElementsAnnotatedWith(MultiDispatchClass.class)) {
-                JCTree.JCClassDecl classTree = (JCTree.JCClassDecl) trees.getPath(e).getLeaf();
-
-                for (MethodInstance oldMethod : originalMethods.get(model)) {
-                    ReplaceMethodsVisitor visitor = new ReplaceMethodsVisitor(oldMethod, newMethodName);
-                    visitor.visitClassDef(classTree);
-                }
-
-                System.out.println("Calls to " + model.getName() + " in " + classTree.name + " replaced with calls to " + newMethodName);
-            }
-        }
-
-    }
-
-    /*
-    * Inject generated method in the parent class of the original ones
-    * */
-    private void addNewMethods() {
+    protected void addNewMethods() {
 
         for (MethodModel model : generatedMethods.keySet()) {
             JCTree.JCMethodDecl generatedMethod = generatedMethods.get(model);

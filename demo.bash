@@ -26,9 +26,19 @@ echo "--------------------------------------------------------------------------
 
 echo
 #build the demo program with annotation processing and run it
-echo "TestClass with multiple dispatch:"
+echo "TestClass with multiple dispatch (switch):"
 cd ../../
-mvn -q clean compile
+mvn -Pannotation-processing-switch -q clean compile
+cd ./target/classes
+echo "----------------------------------------------------------------------------"
+java si.kisek.annotationdispatch.TestClass
+echo "----------------------------------------------------------------------------"
+
+echo
+#build the demo program with annotation processing and run it
+echo "TestClass with multiple dispatch (visitor):"
+cd ../../
+mvn -Pannotation-processing-visitor -q clean compile
 cd ./target/classes
 echo "----------------------------------------------------------------------------"
 java si.kisek.annotationdispatch.TestClass

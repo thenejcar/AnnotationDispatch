@@ -18,6 +18,7 @@ public class MethodModel {
     protected JCTree.JCExpression returnValue;
     protected JCTree.JCModifiers modifiers;
     protected JCTree.JCClassDecl parentClass;
+    private String randomness;
 
     public MethodModel(Name name, int numParameters, JCTree.JCExpression returnValue, JCTree.JCModifiers modifiers, JCTree.JCClassDecl parentClass) {
         this.name = name;
@@ -26,6 +27,7 @@ public class MethodModel {
         this.modifiers = modifiers;
         this.modifiers.annotations = com.sun.tools.javac.util.List.from(new JCTree.JCAnnotation[0]); // ignore annotations from the original method
         this.parentClass = parentClass;
+        this.randomness = UUID.randomUUID().toString().replace("-", "");
     }
 
     public Name getName() {
@@ -68,6 +70,10 @@ public class MethodModel {
         this.parentClass = parentClass;
     }
 
+    public String getRandomness() {
+        return randomness;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -87,8 +93,7 @@ public class MethodModel {
 
 
     public JCTree.JCMethodDecl generateDispatchMethod(TreeMaker tm, JavacElements elements) {
-        String random = UUID.randomUUID().toString().replace("-", "");
-        Name generatedName = elements.getName(name.toString() + "_" + random);  // generate a random name
+        Name generatedName = elements.getName(name.toString() + "_" + randomness);  // generate a random name
 
         JCTree.JCMethodDecl method = tm.MethodDef(
                 modifiers,            // modifiers from original method

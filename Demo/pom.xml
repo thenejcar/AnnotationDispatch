@@ -8,12 +8,14 @@
     <artifactId>example</artifactId>
     <version>1.0</version>
 
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <java.version>1.8</java.version>
+    </properties>
+
     <profiles>
         <profile>
-            <id>annotation-processing</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
+            <id>annotation-processing-switch</id>
             <build>
                 <plugins>
                     <plugin>
@@ -26,7 +28,29 @@
                             <source>1.8</source>
                             <target>1.8</target>
                             <annotationProcessors>
-                                <annotationProcessor>si.kisek.annotationdispatch.Processor</annotationProcessor>
+                                <annotationProcessor>si.kisek.annotationdispatch.ProcessorSwitch</annotationProcessor>
+                            </annotationProcessors>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>annotation-processing-visitor</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <version>3.6.2</version>
+                        <configuration>
+                            <!--<verbose>true</verbose>-->
+                            <compilerVersion>1.8</compilerVersion>
+                            <compilerArgument>-Xlint:all</compilerArgument>
+                            <source>1.8</source>
+                            <target>1.8</target>
+                            <annotationProcessors>
+                                <annotationProcessor>si.kisek.annotationdispatch.ProcessorVisitor</annotationProcessor>
                             </annotationProcessors>
                         </configuration>
                     </plugin>

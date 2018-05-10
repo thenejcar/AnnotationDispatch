@@ -76,41 +76,8 @@ public class CodeGenerator {
         }
     }
 
-
-    /*
-     * builds a chain of if/elseif statements from an iterator
-     *
-     * if arg instanceof Class1 -> generateIfInstanceOf(node1)
-     * else if arg instanceof Class2 -> generateIfInstanceOf(node2)
-     * ...
-     * */
-    @Deprecated
-    private JCTree.JCIf chainElseIfInstanceof(ListIterator<MethodSwitcher.SwitcherNode> iterator, int level) {
-        if (!iterator.hasNext()) {
-            return null;
-        } else {
-            MethodSwitcher.SwitcherNode node = iterator.next();
-            Symbol symbol = node.parentType.tsym;
-            return tm.If(
-                    tm.Parens(tm.TypeTest(tm.Ident(generatedMethod.params.get(level)), tm.Ident(symbol))),
-                    tm.Block(0, javacList(Collections.singletonList(generateIfInstanceOf(node)))),
-                    chainElseIfInstanceof(iterator, level)
-
-            );
-        }
-
-    }
-
-    private JCTree.JCStatement listIfInstanceOfStatements(MethodSwitcher.SwitcherNode parentnode) {
-        List<JCTree.JCStatement> ifStatements = new ArrayList<>();
-        for (MethodSwitcher.SwitcherNode node : parentnode.subtree) {
-            ifStatements.add(tm.If(
-                    tm.Parens(tm.TypeTest(tm.Ident(generatedMethod.params.get(parentnode.level)), tm.Ident(parentnode.parentType.tsym))),
-                    tm.Block(0, javacList(Collections.singletonList(generateIfInstanceOf(node)))),
-                    null
-            ));
-        }
-        return tm.Block(0, javacList(ifStatements));
+    public JCTree.JCStatement generateVisitor(MethodSwitcher.SwitcherNode parentnode) {
+        return null;
     }
 
     public JCTree.JCStatement generateDefaultThrowStat(JCTree.JCMethodDecl generatedMethod) {
