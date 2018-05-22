@@ -3,13 +3,13 @@ package si.kisek.annotationdispatchdemo;
 
 import si.kisek.annotationdispatch.MultiDispatch;
 import si.kisek.annotationdispatch.MultiDispatchClass;
-import si.kisek.annotationdispatch.Visitable;
 
 @MultiDispatchClass
 public class TestClass {
 
-    Object testMethod(String arg1, Visitable arg2) {
-        return "Something";
+    static void testMethod(String arg1) {
+        System.out.println("***** test method called *****");
+        AnotherClass.doSomething();
     }
 
     public class TestInterface {
@@ -18,7 +18,7 @@ public class TestClass {
         }
     }
 
-    public class VisitorTest {
+    public class InlineClassTest extends TestInterface {
 
     }
 

@@ -21,7 +21,7 @@ cd ../Demo
 mvn -q -Punmodified clean compile
 cd ./target/classes
 echo "----------------------------------------------------------------------------"
-java si.kisek.annotationdispatch.TestClass
+java si.kisek.annotationdispatchdemo.TestClass
 echo "----------------------------------------------------------------------------"
 
 echo
@@ -31,7 +31,7 @@ cd ../../
 mvn -Pannotation-processing-switch -q clean compile
 cd ./target/classes
 echo "----------------------------------------------------------------------------"
-java si.kisek.annotationdispatch.TestClass
+java si.kisek.annotationdispatchdemo.TestClass
 echo "----------------------------------------------------------------------------"
 
 echo
@@ -41,7 +41,7 @@ cd ../../
 mvn -Pannotation-processing-visitor -q clean compile
 cd ./target/classes
 echo "----------------------------------------------------------------------------"
-java si.kisek.annotationdispatch.TestClass
+java si.kisek.annotationdispatchdemo.TestClass
 echo "----------------------------------------------------------------------------"
 
 

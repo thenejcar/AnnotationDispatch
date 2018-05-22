@@ -1,8 +1,12 @@
 package si.kisek.annotationdispatch;
 
 
+import com.sun.source.tree.Tree;
+import com.sun.tools.javac.code.Scope;
+import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree;
+import com.sun.tools.javac.tree.TreeTranslator;
 import si.kisek.annotationdispatch.models.AcceptMethod;
 import si.kisek.annotationdispatch.models.MethodInstance;
 import si.kisek.annotationdispatch.models.MethodModel;
@@ -20,6 +24,8 @@ import javax.tools.JavaFileObject;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.*;
 
 import static si.kisek.annotationdispatch.utils.Utils.javacList;
@@ -38,44 +44,47 @@ import static si.kisek.annotationdispatch.utils.Utils.javacList;
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 public class ProcessorVisitor extends MultidispatchProcessor {
 
-    private boolean visitableGenerated = false;
+    private boolean pass1Complete = false;
+    private boolean pass2Complete = false;
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
 
-        if (originalMethods.size() <= 0) {
-            originalMethods = super.processAnnotatedMethods(roundEnv);
-        }
+        if (!pass1Complete) {
+            pass1Complete = true;
 
-        if (originalMethods.size() == 0) {
-            // still no annotated methods, skip
-            processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "No dispatchable methods found, exiting");
-            return true;
-        }
+            processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "Round 1");
 
-        if (!visitableGenerated) {
-            // round 1
+            if (originalMethods.size() <= 0) {
+                originalMethods = super.processAnnotatedMethods(roundEnv);
+            }
+
+            if (originalMethods.size() == 0) {
+                // still no annotated methods, skip
+                processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "No dispatchable methods found, exiting");
+                return true;
+            }
             generateAcceptMethods(roundEnv);
             PackageElement pck = (PackageElement) elements.getPackageOf(roundEnv.getElementsAnnotatedWith(MultiDispatchClass.class).iterator().next());
             generateVisitableBase(roundEnv, pck);
-            visitableGenerated = true;
-
-            System.out.println("Processing over? " + roundEnv.processingOver());
-            return true;
-        } else {
-            // round 2
             modifyVisitableClasses(roundEnv);
 
             super.addNewMethods();
-            return true;
+
+        } else if (!pass2Complete) {
+            pass2Complete = true;
+
+            processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "Round 2");
         }
+        return true;
+
     }
 
     private void generateVisitableBase(RoundEnvironment roundEnv, PackageElement pck) {
         // TODO
         for (MethodModel mm : originalMethods.keySet()) {
             try {
-                String filename = pck.getQualifiedName() + ".Visitable_" + mm.getRandomness();
+                String filename = pck.getQualifiedName() + mm.getVisitableName();
 
                 processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "Writing new file: " + filename);
 
@@ -94,7 +103,7 @@ public class ProcessorVisitor extends MultidispatchProcessor {
                         .append(mm.getRandomness())
                         .append(" {");
                 bw.newLine();
-                bw.append("private static void someMethod(String arg1, int arg2) { System.out.println(arg1 + arg2); }");
+                bw.append("public static void someMethod(String arg1) { System.out.println(\"Method from generated class called: \" + arg1); }");
                 bw.newLine();
                 bw.append("}");
                 bw.newLine();
@@ -109,7 +118,22 @@ public class ProcessorVisitor extends MultidispatchProcessor {
 
 
     private void modifyVisitableClasses(RoundEnvironment roundEnv) {
-        // TODO
+        // TODO: this is just a test
+        for (MethodModel mm : originalMethods.keySet()) {
+            for (Element e : roundEnv.getElementsAnnotatedWith(MultiDispatch.class)) {
+                Tree tree = trees.getPath(e).getLeaf();
+                if (tree instanceof JCTree.JCMethodDecl) {
+                    JCTree.JCMethodDecl changedMethod = ((JCTree.JCMethodDecl) tree);
+                    changedMethod.body.stats = changedMethod.body.stats.prepend(
+                            tm.Exec(tm.Apply(
+                                    javacList(new JCTree.JCExpression[0]),
+                                    tm.Select(tm.Ident(elements.getName(mm.getVisitableName())), elements.getName("someMethod")),
+                                    javacList(Collections.singletonList(tm.Literal("Literal String Parameter")))
+                            ))
+                    );
+                }
+            }
+        }
     }
 
 
@@ -177,7 +201,7 @@ public class ProcessorVisitor extends MultidispatchProcessor {
                 if (possibleTypes.containsKey(e.asType().toString())) {
                     // this Element can be a parameter in MM, generate accept methods for the visitor
                     for (Type t : acceptMethods.keySet()) {
-                        if (!t.toString().equals(e.asType().toString())){
+                        if (!t.toString().equals(e.asType().toString())) {
                             continue;
                         }
 

@@ -16,5 +16,5 @@ echo
 echo "Compilation done, running the compiled TestClass"
 
 cd target/classes/
-java si.kisek.annotationdispatch.TestClass
+java si.kisek.annotationdispatchdemo.TestClass
 

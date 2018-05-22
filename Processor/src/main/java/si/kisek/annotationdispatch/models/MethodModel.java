@@ -74,6 +74,10 @@ public class MethodModel {
         return randomness;
     }
 
+    public String getVisitableName() {
+        return "Visitable" + randomness;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
