@@ -5,7 +5,7 @@ import si.kisek.annotationdispatch.MultiDispatchVisitable;
 @MultiDispatchVisitable
 public class Cat extends Mammal{
     @Override
-    String describe() {
+    public String describe() {
         return "Cat";
     }
 }

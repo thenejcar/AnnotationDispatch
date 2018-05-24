@@ -3,9 +3,9 @@ package si.kisek.annotationdispatchdemo.models;
 import si.kisek.annotationdispatch.MultiDispatchVisitable;
 
 @MultiDispatchVisitable
-public class Dog extends Mammal {
+public class Oak extends Tree {
     @Override
-    public String describe() {
-        return "Dog";
+    public String whichTree(){
+        return "an oak tree";
     }
 }
