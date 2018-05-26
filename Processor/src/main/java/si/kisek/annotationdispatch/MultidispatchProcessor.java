@@ -17,6 +17,7 @@ import com.sun.tools.javac.util.Name;
 import si.kisek.annotationdispatch.models.MethodInstance;
 import si.kisek.annotationdispatch.models.MethodModel;
 import si.kisek.annotationdispatch.utils.ReplaceMethodsVisitor;
+import si.kisek.annotationdispatch.utils.Utils;
 
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
@@ -89,7 +90,8 @@ public abstract class MultidispatchProcessor extends AbstractProcessor {
                     parent = parent.getParentPath(); // move up until you hit a class declaration or null
                 }
 
-                MethodModel model = new MethodModel(name, parameterTypes.size(), declaration.restype, declaration.mods, (JCTree.JCClassDecl) parent.getLeaf(), e);
+                MethodModel model = new MethodModel(name, parameterTypes.size(), declaration.restype, declaration.mods,
+                        (JCTree.JCClassDecl) parent.getLeaf(), e, elements.getPackageOf(e).getQualifiedName().toString());
                 map.putIfAbsent(model, new HashSet<>());
                 map.get(model).add(new MethodInstance(model, parameterTypes));
 
@@ -125,17 +127,7 @@ public abstract class MultidispatchProcessor extends AbstractProcessor {
             );
 
             // use reflection to add the generated method symbol to the parent class
-            Scope scope;
-            try {
-                Field field = Symbol.ClassSymbol.class.getField("members_field");
-                Method enterSym = field.getType().getMethod("enter", Symbol.class);
-
-                scope = (Scope) field.get(classDecl.sym); // get the class members field
-                enterSym.invoke(scope, methodSymbol);  // enter the symbol
-            } catch (Exception e) {
-                e.printStackTrace();
-                throw new RuntimeException("Unable to inject method symbol into the class, you are probably using the wrong compiler version");
-            }
+            Utils.addMethodSymbolToClass(classDecl, methodSymbol);
 
             System.out.println("Method " + generatedMethod.name + " added to " + classDecl.name);
         }

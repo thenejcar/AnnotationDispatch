@@ -11,7 +11,8 @@ public class MethodInstance extends MethodModel{
 
     public MethodInstance(MethodModel model, List<Type> parameters) {
         // model defines method's name, num. of parameters, return type, modifiers and parent class
-        super(model.getName(), model.getNumParameters(), model.getReturnValue(), model.getModifiers(), model.getParentClass(), model.getParentElement());
+        super(model.getName(), model.getNumParameters(), model.getReturnValue(), model.getModifiers(),
+                model.getParentClass(), model.getParentElement(), model.getPackageName());
         this.parameters = parameters; // parameters for this particular instance
     }
 

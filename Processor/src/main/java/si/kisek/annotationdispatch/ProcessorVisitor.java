@@ -7,6 +7,8 @@ import com.sun.tools.javac.tree.JCTree;
 import si.kisek.annotationdispatch.models.AcceptMethod;
 import si.kisek.annotationdispatch.models.MethodInstance;
 import si.kisek.annotationdispatch.models.MethodModel;
+import si.kisek.annotationdispatch.utils.CodeGeneratorSwitch;
+import si.kisek.annotationdispatch.utils.CodeGeneratorVisitor;
 
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
@@ -63,17 +65,20 @@ public class ProcessorVisitor extends MultidispatchProcessor {
             this.acceptMethods = generateAcceptMethods(roundEnv);
             generateVisitableBase();
             generateVisitor();
+
             modifyVisitableClasses(roundEnv);
 
             super.addNewMethods();
+            return false;
 
         } else if (!pass2Complete) {
             pass2Complete = true;
-
             processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "Round 2");
-        }
-        return true;
 
+            return true;
+        } else {
+            return true;
+        }
     }
 
     private void generateVisitableBase() {
@@ -101,7 +106,7 @@ public class ProcessorVisitor extends MultidispatchProcessor {
                 bw.newLine();
                 bw.append("@MultiDispatchVisitableBase");
                 bw.newLine();
-                bw.append("class ")
+                bw.append("public interface ")
                         .append(mm.getVisitableName())
                         .append(" {");
                 bw.newLine();
@@ -111,7 +116,7 @@ public class ProcessorVisitor extends MultidispatchProcessor {
                     allMethods.addAll(s);
 
                 for (AcceptMethod am : allMethods) {
-                    bw.append(am.emitDefaultAcceptCode());
+                    bw.append(am.emitInterfaceAcceptCode());
                     bw.newLine();
                 }
 
@@ -152,7 +157,7 @@ public class ProcessorVisitor extends MultidispatchProcessor {
                 }
                 bw.newLine();
                 bw.newLine();
-                bw.append("class ")
+                bw.append("public class ")
                         .append(mm.getVisitorName())
                         .append(" {");
                 bw.newLine();
@@ -211,22 +216,20 @@ public class ProcessorVisitor extends MultidispatchProcessor {
     }
 
     private void modifyVisitableClasses(RoundEnvironment roundEnv) {
-        // TODO: this is just a test
-//        for (MethodModel mm : originalMethods.keySet()) {
-//            for (Element e : roundEnv.getElementsAnnotatedWith(MultiDispatch.class)) {
-//                Tree tree = trees.getPath(e).getLeaf();
-//                if (tree instanceof JCTree.JCMethodDecl) {
-//                    JCTree.JCMethodDecl changedMethod = ((JCTree.JCMethodDecl) tree);
-//                    changedMethod.body.stats = changedMethod.body.stats.prepend(
-//                            tm.Exec(tm.Apply(
-//                                    javacList(new JCTree.JCExpression[0]),
-//                                    tm.Select(tm.Ident(elements.getName(mm.getVisitableName())), elements.getName("someMethod")),
-//                                    javacList(Collections.singletonList(tm.Literal("Literal String Parameter")))
-//                            ))
-//                    );
-//                }
-//            }
-//        }
+
+        for (MethodModel mm : this.acceptMethods.keySet()) {
+
+            CodeGeneratorVisitor generator = new CodeGeneratorVisitor(super.tm, super.elements, super.symtab, mm, this.acceptMethods.get(mm));
+
+            for (Element e : roundEnv.getElementsAnnotatedWith(MultiDispatchVisitable.class)) {
+                JCTree.JCClassDecl classDecl = ((JCTree.JCClassDecl) trees.getPath(e).getLeaf());
+
+                Type type = classDecl.sym.type;
+                if (this.acceptMethods.get(mm).containsKey(type)) {
+                    generator.modifyVisitableClass(classDecl); // implement the Visitable interface (add the accept methods)
+                }
+            }
+        }
     }
 
 
@@ -251,7 +254,7 @@ public class ProcessorVisitor extends MultidispatchProcessor {
             for (MethodInstance mi : originalMethods.get(mm)) {
 
                 for (int i = 0; i < mm.getNumParameters(); i++) {
-                    String name = mm.getRandomness() + "_accept" + (i + 1);
+                    String name = "accept" + (i + 1);
 
                     JCTree.JCMethodDecl method = tm.MethodDef(
                             tm.Modifiers(0), // no modifiers
@@ -281,7 +284,7 @@ public class ProcessorVisitor extends MultidispatchProcessor {
                                 new Type.ClassType(
                                         new Type.JCNoType(),
                                         com.sun.tools.javac.util.List.from(new Type[0]),
-                                        elements.getTypeElement("java.lang.Object")
+                                        elements.getTypeElement("java.lang.Object")  // Object is temporary, real type will be filled in the second round
                                 ),
                                 method.sym
                         ));
@@ -291,36 +294,6 @@ public class ProcessorVisitor extends MultidispatchProcessor {
                     Type currType = mi.getParameters().get(i);
                     acceptMethods.putIfAbsent(currType, new HashSet<>());
                     acceptMethods.get(currType).add(new AcceptMethod(name, mm, method.sym, i, defined, undefined));
-                }
-            }
-
-            for (Element e : roundEnv.getElementsAnnotatedWith(MultiDispatchVisitable.class)) {
-                if (possibleTypes.containsKey(e.asType().toString())) {
-                    // this Element can be a parameter in MM, generate accept methods for the visitor
-                    for (Type t : acceptMethods.keySet()) {
-                        if (!t.toString().equals(e.asType().toString())) {
-                            continue;
-                        }
-
-                        for (AcceptMethod am : acceptMethods.get(t)) {
-                            JCTree.JCMethodDecl method = tm.MethodDef(
-                                    tm.Modifiers(0), // no modifiers
-                                    elements.getName(am.getName()),
-                                    mm.getReturnValue(),  // return type from original method
-                                    com.sun.tools.javac.util.List.from(new JCTree.JCTypeParameter[0]),  // no type parameters (TODO: check this)
-                                    com.sun.tools.javac.util.List.from(new JCTree.JCVariableDecl[0]),  // arguments are added below
-                                    com.sun.tools.javac.util.List.from(new JCTree.JCExpression[0]),  // no exception throwing
-                                    null,  // body is added below
-                                    null  // no default value
-                            );
-
-                            //TODO: test if Exceptions are faster than return value wrapper
-
-                            //TODO TODO TODO
-                        }
-                        //TODO: inject the new methods in Element e
-
-                    }
                 }
             }
 

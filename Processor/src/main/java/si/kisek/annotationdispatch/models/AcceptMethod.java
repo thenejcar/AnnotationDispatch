@@ -85,7 +85,7 @@ public class AcceptMethod {
     /*
      * Emits the default code for this accept method (the one the throws an exception)
      * */
-    public String emitDefaultAcceptCode() {
+    public String emitInterfaceAcceptCode() {
         StringBuilder sb = new StringBuilder("public ").append(mm.getReturnValue()).append(" accept")
                 .append(definedParameters.size() + 1)
                 .append("(")
@@ -94,42 +94,24 @@ public class AcceptMethod {
         if (definedParameters.size() > 0 || undefinedParameters.size() > 0)
             sb.append(", ");
 
-        StringBuilder exceptionString = new StringBuilder();
-
         ListIterator<JCTree.JCVariableDecl> defIter = definedParameters.listIterator();
         while (defIter.hasNext()) {
             JCTree.JCVariableDecl decl = defIter.next();
             sb.append(decl.type.tsym.name.toString()).append(" ").append(decl.name);
-            exceptionString.append(decl.name);
             if (defIter.hasNext() || undefinedParameters.size() > 0) {
                 sb.append(", ");
             }
-            exceptionString.append(", ");
-        }
-
-        exceptionString.append("this");
-
-        // add this parameter to the exception string
-        if (undefinedParameters.size() > 0) {
-            exceptionString.append(", ");
         }
 
         ListIterator<JCTree.JCVariableDecl> undefIter = undefinedParameters.listIterator();
         while (undefIter.hasNext()) {
             JCTree.JCVariableDecl decl = undefIter.next();
             sb.append(mm.getVisitableName()).append(" ").append(decl.name);
-            exceptionString.append(decl.name);
             if (undefIter.hasNext()) {
                 sb.append(", ");
-                exceptionString.append(", ");
             }
         }
-
-        sb.append("){ throw new DispatchException(\"")
-                .append(mm.getName().toString())
-                .append("\", ")
-                .append(exceptionString.toString())
-                .append("); }");
+        sb.append(");");
 
         return sb.toString();
     }

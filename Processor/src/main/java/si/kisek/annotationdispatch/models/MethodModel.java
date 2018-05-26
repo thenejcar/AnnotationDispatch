@@ -1,10 +1,12 @@
 package si.kisek.annotationdispatch.models;
 
 import com.sun.tools.javac.code.Type;
+import com.sun.tools.javac.code.TypeTag;
 import com.sun.tools.javac.model.JavacElements;
 import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.util.Name;
+import si.kisek.annotationdispatch.utils.Utils;
 
 import javax.lang.model.element.Element;
 import java.util.*;
@@ -20,9 +22,10 @@ public class MethodModel {
     protected JCTree.JCModifiers modifiers;
     protected JCTree.JCClassDecl parentClass;
     protected Element parentElement;
+    private String packageName;
     private String randomness;
 
-    public MethodModel(Name name, int numParameters, JCTree.JCExpression returnValue, JCTree.JCModifiers modifiers, JCTree.JCClassDecl parentClass, Element parentElement) {
+    public MethodModel(Name name, int numParameters, JCTree.JCExpression returnValue, JCTree.JCModifiers modifiers, JCTree.JCClassDecl parentClass, Element parentElement, String packageName) {
         this.name = name;
         this.numParameters = numParameters;
         this.returnValue = returnValue;
@@ -30,6 +33,7 @@ public class MethodModel {
         this.modifiers.annotations = com.sun.tools.javac.util.List.from(new JCTree.JCAnnotation[0]); // ignore annotations from the original method
         this.parentClass = parentClass;
         this.parentElement = parentElement;
+        this.packageName = packageName;
         this.randomness = UUID.randomUUID().toString().replace("-", "");
     }
 
@@ -82,6 +86,10 @@ public class MethodModel {
         return randomness;
     }
 
+    public String getPackageName() {
+        return this.packageName;
+    }
+
     public String getVisitableName() {
         return "Visitable_" + randomness;
     }
@@ -127,7 +135,7 @@ public class MethodModel {
                     elements.getName("arg" + i),
                     new Type.ClassType(
                             new Type.JCNoType(),
-                            com.sun.tools.javac.util.List.from(new Type[0]),
+                            Utils.javacList(new Type[0]),
                             elements.getTypeElement("java.lang.Object")
                     ),
                     method.sym
@@ -135,8 +143,12 @@ public class MethodModel {
         }
 
         // create the parameters and add them to the method
-        method.params = com.sun.tools.javac.util.List.from(parameters);
+        method.params = Utils.javacList(parameters);
 
         return method;
+    }
+
+    public boolean isVoid() {
+        return returnValue.type.getTag() == TypeTag.VOID;
     }
 }
