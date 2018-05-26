@@ -1,31 +1,18 @@
 package si.kisek.annotationdispatch;
 
 
-import com.sun.source.tree.Tree;
-import com.sun.source.util.TreePath;
-import com.sun.source.util.Trees;
-import com.sun.tools.javac.code.Scope;
-import com.sun.tools.javac.code.Symbol;
-import com.sun.tools.javac.code.Symtab;
-import com.sun.tools.javac.code.Type;
-import com.sun.tools.javac.model.JavacElements;
-import com.sun.tools.javac.model.JavacTypes;
-import com.sun.tools.javac.processing.JavacProcessingEnvironment;
 import com.sun.tools.javac.tree.JCTree;
-import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.util.Name;
 import si.kisek.annotationdispatch.models.MethodInstance;
 import si.kisek.annotationdispatch.models.MethodModel;
 import si.kisek.annotationdispatch.models.MethodSwitcher;
-import si.kisek.annotationdispatch.utils.CodeGenerator;
+import si.kisek.annotationdispatch.utils.CodeGeneratorSwitch;
 import si.kisek.annotationdispatch.utils.ReplaceMethodsVisitor;
 
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.util.*;
 
 import static si.kisek.annotationdispatch.utils.Utils.javacList;
@@ -84,7 +71,7 @@ public class ProcessorSwitch extends MultidispatchProcessor {
 
             MethodSwitcher methodSwitcher = new MethodSwitcher(types, model, instances);
 
-            CodeGenerator codeGenerator = new CodeGenerator(tm, elements, generatedMethod);
+            CodeGeneratorSwitch codeGenerator = new CodeGeneratorSwitch(tm, elements, generatedMethod);
             List<JCTree.JCStatement> statements = new ArrayList<>();
             statements.add(codeGenerator.generateIfInstanceOf(methodSwitcher.getRoot()));
 

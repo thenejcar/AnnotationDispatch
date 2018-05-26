@@ -89,7 +89,7 @@ public abstract class MultidispatchProcessor extends AbstractProcessor {
                     parent = parent.getParentPath(); // move up until you hit a class declaration or null
                 }
 
-                MethodModel model = new MethodModel(name, parameterTypes.size(), declaration.restype, declaration.mods, (JCTree.JCClassDecl) parent.getLeaf());
+                MethodModel model = new MethodModel(name, parameterTypes.size(), declaration.restype, declaration.mods, (JCTree.JCClassDecl) parent.getLeaf(), e);
                 map.putIfAbsent(model, new HashSet<>());
                 map.get(model).add(new MethodInstance(model, parameterTypes));
 

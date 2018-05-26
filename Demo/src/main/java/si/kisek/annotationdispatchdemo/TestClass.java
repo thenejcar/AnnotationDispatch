@@ -24,33 +24,37 @@ public class TestClass {
         Tree pineTree = new Pine();
         Tree appleTree = new Apple();
 
-        climbing(cat, tree);
-        climbing(animal, tree);
-        climbing(cat, oakTree);
-        climbing(lizard, appleTree);
-        climbing(dog, pineTree);
-        climbing(lizard, oakTree);
+        climbing(cat, dog, tree);
+        climbing(animal, animal, tree);
+        climbing(cat, cat, oakTree);
+        climbing(lizard, dog, appleTree);
+        climbing(dog, lizard, pineTree);
+        climbing(lizard, dog, oakTree);
 
     }
 
     @MultiDispatch
-    static void climbing(Animal o1, Tree o2) {
-        System.out.println(String.format("called: Animal climbing on a tree         | real: %s climbing on %s", o1.describe(), o2.whichTree()));
+    static void climbing(Animal o1, Animal o2, Tree o3) {
+        System.out.println(String.format("called: Animal and Animal climbing on a tree         | real: %s and %s climbing on %s",
+                o1.describe(), o2.describe(), o3.whichTree()));
     }
 
     @MultiDispatch
-    static void climbing(Mammal o1, Tree o2) {
-        System.out.println(String.format("called: Mammal climbing on a tree         | real: %s climbing on %s", o1.describe(), o2.whichTree()));
+    static void climbing(Mammal o1, Reptile o2, Tree o3) {
+        System.out.println(String.format("called: Mammal and Reptile climbing on a tree        | real: %s and %s climbing on %s",
+                o1.describe(), o2.describe(), o3.whichTree()));
     }
 
     @MultiDispatch
-    static void climbing(Cat o1, Oak o2) {
-        System.out.println(String.format("called: Cat climbing on an oak tree       | real: %s climbing on %s", o1.describe(), o2.whichTree()));
+    static void climbing(Cat o1, Cat o2, Oak o3) {
+        System.out.println(String.format("called: Cat and Cat climbing on an oak tree          | real: %s and %s climbing on %s",
+                o1.describe(), o2.describe(), o3.whichTree()));
     }
 
     @MultiDispatch
-    static void climbing(Reptile o1, Apple o2) {
-        System.out.println(String.format("called: Reptile climbing on an apple tree | real: %s climbing on %s", o1.describe(), o2.whichTree()));
+    static void climbing(Reptile o1, Mammal o2, Apple o3) {
+        System.out.println(String.format("called: Reptile and Mammal climbing on an apple tree | real: %s and %s climbing on %s",
+                o1.describe(), o2.describe(), o3.whichTree()));
     }
 
 }

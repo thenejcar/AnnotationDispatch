@@ -6,6 +6,7 @@ import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.util.Name;
 
+import javax.lang.model.element.Element;
 import java.util.*;
 
 /*
@@ -18,15 +19,17 @@ public class MethodModel {
     protected JCTree.JCExpression returnValue;
     protected JCTree.JCModifiers modifiers;
     protected JCTree.JCClassDecl parentClass;
+    protected Element parentElement;
     private String randomness;
 
-    public MethodModel(Name name, int numParameters, JCTree.JCExpression returnValue, JCTree.JCModifiers modifiers, JCTree.JCClassDecl parentClass) {
+    public MethodModel(Name name, int numParameters, JCTree.JCExpression returnValue, JCTree.JCModifiers modifiers, JCTree.JCClassDecl parentClass, Element parentElement) {
         this.name = name;
         this.numParameters = numParameters;
         this.returnValue = returnValue;
         this.modifiers = modifiers;
         this.modifiers.annotations = com.sun.tools.javac.util.List.from(new JCTree.JCAnnotation[0]); // ignore annotations from the original method
         this.parentClass = parentClass;
+        this.parentElement = parentElement;
         this.randomness = UUID.randomUUID().toString().replace("-", "");
     }
 
@@ -66,8 +69,13 @@ public class MethodModel {
         return parentClass;
     }
 
-    public void setParentClass(JCTree.JCClassDecl parentClass) {
+    public Element getParentElement() {
+        return parentElement;
+    }
+
+    public void setParentClass(JCTree.JCClassDecl parentClass, Element parentElement) {
         this.parentClass = parentClass;
+        this.parentElement = parentElement;
     }
 
     public String getRandomness() {
@@ -75,7 +83,10 @@ public class MethodModel {
     }
 
     public String getVisitableName() {
-        return "Visitable" + randomness;
+        return "Visitable_" + randomness;
+    }
+    public String getVisitorName() {
+        return "Visitor_" + randomness;
     }
 
     @Override

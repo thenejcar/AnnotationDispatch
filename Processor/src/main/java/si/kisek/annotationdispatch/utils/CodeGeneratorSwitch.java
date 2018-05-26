@@ -12,12 +12,12 @@ import java.util.*;
 
 import static si.kisek.annotationdispatch.utils.Utils.javacList;
 
-public class CodeGenerator {
+public class CodeGeneratorSwitch {
     private TreeMaker tm;
     private JavacElements el;
     private JCTree.JCMethodDecl generatedMethod;
 
-    public CodeGenerator(TreeMaker tm, JavacElements el, JCTree.JCMethodDecl generatedMethod) {
+    public CodeGeneratorSwitch(TreeMaker tm, JavacElements el, JCTree.JCMethodDecl generatedMethod) {
         this.tm = tm;
         this.el = el;
         this.generatedMethod = generatedMethod;
@@ -74,10 +74,6 @@ public class CodeGenerator {
                 );
             }
         }
-    }
-
-    public JCTree.JCStatement generateVisitor(MethodSwitcher.SwitcherNode parentnode) {
-        return null;
     }
 
     public JCTree.JCStatement generateDefaultThrowStat(JCTree.JCMethodDecl generatedMethod) {
