@@ -86,8 +86,7 @@ public class CodeGeneratorSwitch {
                         errorMessage(generatedMethod.params.listIterator())
                 )),
                 null
-                )
-        );
+        ));
     }
 
     private JCTree.JCBinary errorMessage(ListIterator<JCTree.JCVariableDecl> iterator) {

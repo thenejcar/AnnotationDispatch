@@ -1,12 +1,16 @@
 package si.kisek.annotationdispatch.models;
 
 import com.sun.tools.javac.code.Symbol;
+import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.code.TypeTag;
 import com.sun.tools.javac.tree.JCTree;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Objects;
+
+import static si.kisek.annotationdispatch.utils.Utils.javacList;
 
 /*
  * Class that represents one accept method in the dispatch visitor
@@ -16,6 +20,7 @@ public class AcceptMethod {
     private String name; // Name, looks like "12randomness34_accept1"
     private MethodModel mm; // Method that this visitor is dispatching
     private Symbol.MethodSymbol sym; // symbol of the method that will be created from this class
+    private boolean isRoot;
     private int level; // which parameter is being defined with this method
     private List<JCTree.JCVariableDecl> definedParameters; // all parameters before 'level' are already defined
     private List<JCTree.JCVariableDecl> undefinedParameters; // parameters after 'define' use the root type for this MM
@@ -23,11 +28,12 @@ public class AcceptMethod {
     private JCTree.JCMethodDecl methodDecl;
 
 
-    public AcceptMethod(String name, MethodModel mm, Symbol.MethodSymbol sym, int level, List<JCTree.JCVariableDecl> definedParameters, List<JCTree.JCVariableDecl> undefinedParameters) {
+    public AcceptMethod(String name, MethodModel mm, Symbol.MethodSymbol sym, int level, boolean isRoot, List<JCTree.JCVariableDecl> definedParameters, List<JCTree.JCVariableDecl> undefinedParameters) {
         this.name = name;
         this.mm = mm;
         this.sym = sym;
         this.level = level;
+        this.isRoot = isRoot;
         this.definedParameters = definedParameters;
         this.undefinedParameters = undefinedParameters;
     }
@@ -56,6 +62,10 @@ public class AcceptMethod {
         return undefinedParameters;
     }
 
+    public boolean isRoot() {
+        return isRoot;
+    }
+
     public JCTree.JCMethodDecl getMethodDecl() {
         return methodDecl;
     }
@@ -82,9 +92,28 @@ public class AcceptMethod {
         return Objects.hash(getName(), getMethodModel(), getSym(), getLevel(), getDefinedParameters(), getUndefinedParameters().size());
     }
 
+
+    /*
+    * Replaces the placeholder java.lang.Object with actual type of the Visitable interface
+    * this has to be done AFTER visitable is added to the symtables and before accept methods are generated
+    * */
+    public void fixUndefinedParameterTypes(Symbol.TypeSymbol visitableTypeSymbol) {
+        List<JCTree.JCVariableDecl> fixedParameters = new ArrayList<>();
+        for (JCTree.JCVariableDecl param : undefinedParameters) {
+            param.type = new Type.ClassType(
+                    new Type.JCNoType(),
+                    javacList(new Type[0]),
+                    visitableTypeSymbol
+            );
+            fixedParameters.add(param);
+        }
+        this.undefinedParameters = fixedParameters;
+    }
+
     /*
      * Emits the default code for this accept method (the one the throws an exception)
      * */
+    @Deprecated
     public String emitInterfaceAcceptCode() {
         StringBuilder sb = new StringBuilder("public ").append(mm.getReturnValue()).append(" accept")
                 .append(definedParameters.size() + 1)
@@ -116,6 +145,7 @@ public class AcceptMethod {
         return sb.toString();
     }
 
+    @Deprecated
     public String emitVisitorCode() {
 
         StringBuilder sb = new StringBuilder()
@@ -150,7 +180,7 @@ public class AcceptMethod {
         }
 
         sb.append("){ ");
-        if (mm.getReturnValue().type.getTag() != TypeTag.VOID) {
+        if (!mm.isVoid()) {
             sb.append("return ");
         }
         sb.append("o").append(this.level)

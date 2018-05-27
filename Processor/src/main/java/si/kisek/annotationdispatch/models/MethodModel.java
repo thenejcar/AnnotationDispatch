@@ -96,6 +96,9 @@ public class MethodModel {
     public String getVisitorName() {
         return "Visitor_" + randomness;
     }
+    public String getExceptionName() {
+        return "Exception_" + randomness;
+    }
 
     @Override
     public boolean equals(Object o) {

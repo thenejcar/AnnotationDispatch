@@ -1,6 +1,8 @@
 package si.kisek.annotationdispatch;
 
 
+import com.sun.tools.javac.code.Symbol;
+import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.util.Name;
 import si.kisek.annotationdispatch.models.MethodInstance;
@@ -8,6 +10,7 @@ import si.kisek.annotationdispatch.models.MethodModel;
 import si.kisek.annotationdispatch.models.MethodSwitcher;
 import si.kisek.annotationdispatch.utils.CodeGeneratorSwitch;
 import si.kisek.annotationdispatch.utils.ReplaceMethodsVisitor;
+import si.kisek.annotationdispatch.utils.Utils;
 
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
@@ -48,7 +51,7 @@ public class ProcessorSwitch extends MultidispatchProcessor {
         generateNewMethods(roundEnv);
         replaceMethodCalls(roundEnv);
 
-        super.addNewMethods();
+        addNewMethods();
 
         return true;
     }
@@ -69,7 +72,7 @@ public class ProcessorSwitch extends MultidispatchProcessor {
             JCTree.JCMethodDecl generatedMethod = model.generateDispatchMethod(tm, elements);
             Set<MethodInstance> instances = originalMethods.get(model);
 
-            MethodSwitcher methodSwitcher = new MethodSwitcher(types, model, instances);
+            MethodSwitcher methodSwitcher = new MethodSwitcher(super.types, model, instances);
 
             CodeGeneratorSwitch codeGenerator = new CodeGeneratorSwitch(tm, elements, generatedMethod);
             List<JCTree.JCStatement> statements = new ArrayList<>();
@@ -90,7 +93,7 @@ public class ProcessorSwitch extends MultidispatchProcessor {
         }
     }
 
-    protected void replaceMethodCalls(RoundEnvironment roundEnv) {
+    private void replaceMethodCalls(RoundEnvironment roundEnv) {
         //TODO: check if we really need the class annotation, maybe we can find all places where annotated methods were called?
 
         for (MethodModel model : originalMethods.keySet()) {
@@ -106,6 +109,36 @@ public class ProcessorSwitch extends MultidispatchProcessor {
 
                 System.out.println("Calls to " + model.getName() + " in " + classTree.name + " replaced with calls to " + newMethodName);
             }
+        }
+    }
+
+    /*
+     * Inject generated method in the parent class of the original ones
+     * */
+    private void addNewMethods() {
+
+        for (MethodModel model : generatedMethods.keySet()) {
+            JCTree.JCMethodDecl generatedMethod = generatedMethods.get(model);
+
+            JCTree.JCClassDecl classDecl = model.getParentClass();
+
+            classDecl.defs = classDecl.defs.append(generatedMethod);  // add the method to the class
+
+            List<Type> paramTypes = new ArrayList<>();
+            for (JCTree.JCVariableDecl varDecl : generatedMethod.params) {
+                paramTypes.add(varDecl.type);
+            }
+            Symbol.MethodSymbol methodSymbol = new Symbol.MethodSymbol(
+                    generatedMethod.mods.flags,
+                    generatedMethod.name,
+                    new Type.MethodType(javacList(paramTypes), generatedMethod.getReturnType().type, javacList(new Type[0]), symtab.methodClass),
+                    classDecl.sym
+            );
+
+            // use reflection to add the generated method symbol to the parent class
+            Utils.addSymbolToClass(classDecl, methodSymbol);
+
+            System.out.println("Method " + generatedMethod.name + " added to " + classDecl.name);
         }
     }
 }

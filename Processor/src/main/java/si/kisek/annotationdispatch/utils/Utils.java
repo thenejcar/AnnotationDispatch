@@ -18,17 +18,17 @@ public class Utils {
         return com.sun.tools.javac.util.List.from(array);
     }
 
-    public static void addMethodSymbolToClass(JCTree.JCClassDecl classDecl, Symbol.MethodSymbol methodSymbol) {
+    public static void addSymbolToClass(JCTree.JCClassDecl classDecl, Symbol symbol) {
         Scope scope;
         try {
             Field field = Symbol.ClassSymbol.class.getField("members_field");
             Method enterSym = field.getType().getMethod("enter", Symbol.class);
 
             scope = (Scope) field.get(classDecl.sym); // get the class members field
-            enterSym.invoke(scope, methodSymbol);  // enter the symbol
+            enterSym.invoke(scope, symbol);  // enter the symbol
         } catch (Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Unable to inject method symbol into the class, you are probably using the wrong compiler version");
+            throw new RuntimeException("Unable to inject symbol into the class, you are using the wrong compiler version or we have bugs in the annotation processor");
         }
     }
 }

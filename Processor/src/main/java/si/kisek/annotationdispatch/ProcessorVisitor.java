@@ -1,13 +1,13 @@
 package si.kisek.annotationdispatch;
 
 
+import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.code.TypeTag;
 import com.sun.tools.javac.tree.JCTree;
 import si.kisek.annotationdispatch.models.AcceptMethod;
 import si.kisek.annotationdispatch.models.MethodInstance;
 import si.kisek.annotationdispatch.models.MethodModel;
-import si.kisek.annotationdispatch.utils.CodeGeneratorSwitch;
 import si.kisek.annotationdispatch.utils.CodeGeneratorVisitor;
 
 import javax.annotation.processing.RoundEnvironment;
@@ -63,13 +63,17 @@ public class ProcessorVisitor extends MultidispatchProcessor {
                 return true;
             }
             this.acceptMethods = generateAcceptMethods(roundEnv);
-            generateVisitableBase();
-            generateVisitor();
 
-            modifyVisitableClasses(roundEnv);
+            for (MethodModel mm : super.originalMethods.keySet()) {
+                CodeGeneratorVisitor generator = new CodeGeneratorVisitor(super.tm, super.elements, super.types, super.symtab, mm, this.acceptMethods.get(mm), this.originalMethods.get(mm));
+                generator.generateVisitableAndVisitor();
 
-            super.addNewMethods();
-            return false;
+                modifyVisitableClasses(roundEnv, generator);
+
+                generator.createVisitorInitMethod();
+            }
+
+            return true;
 
         } else if (!pass2Complete) {
             pass2Complete = true;
@@ -81,6 +85,93 @@ public class ProcessorVisitor extends MultidispatchProcessor {
         }
     }
 
+    private HashMap<MethodModel, HashMap<Type, Set<AcceptMethod>>> generateAcceptMethods(RoundEnvironment roundEnv) {
+
+        HashMap<MethodModel, HashMap<Type, Set<AcceptMethod>>> result = new HashMap<>();
+
+        // fill the Visitable class with default methods
+        for (MethodModel mm : originalMethods.keySet()) {
+            Map<String, Type> possibleTypes = new HashMap<>();
+            for (MethodInstance mi : originalMethods.get(mm)) {
+                for (Type param : mi.getParameters()) {
+                    possibleTypes.put(param.tsym.name.toString(), param);
+                }
+            }
+
+            Set<Type> roots = new HashSet<>();
+
+            // find roots - types with no visitable superclass
+            for (Type t : possibleTypes.values()) {
+                boolean isRoot = true;
+                for (Type candidate : possibleTypes.values()) {
+                    if (!t.equals(candidate) && super.types.isSubtype(t, candidate)) {
+                        isRoot = false;
+                        break;
+                    }
+                }
+                if (isRoot)
+                    roots.add(t);
+            }
+
+            // generate a Map of all possible accept method
+            // acceptMethods maps a type to a set of methods where it is relevant (it will be resolved by them)
+            // Visitable class will implement all the methods with default body
+            // each visitable class will implement the relevant methods
+            HashMap<Type, Set<AcceptMethod>> acceptMethods = new HashMap<>();
+            for (MethodInstance mi : originalMethods.get(mm)) {
+
+                for (int i = 0; i < mm.getNumParameters(); i++) {
+                    String name = "accept" + (i + 1);
+
+                    JCTree.JCMethodDecl method = tm.MethodDef(
+                            tm.Modifiers(0), // no modifiers
+                            elements.getName(name),
+                            mm.getReturnValue(),  // return type from original method
+                            javacList(new JCTree.JCTypeParameter[0]),  // no type parameters
+                            javacList(new JCTree.JCVariableDecl[0]),  // arguments are added below
+                            javacList(new JCTree.JCExpression[0]),  // no exception throwing
+                            null,  // body is added below
+                            null  // no default value
+                    );
+
+                    List<JCTree.JCVariableDecl> defined = new ArrayList<>();
+                    for (int d = 0; d < i; d++) {
+
+                        defined.add(tm.Param(
+                                elements.getName("d" + d),
+                                mi.getParameters().get(d),
+                                method.sym
+                        ));
+                    }
+
+                    List<JCTree.JCVariableDecl> undefined = new ArrayList<>();
+                    for (int o = i + 1; o < mm.getNumParameters(); o++) {
+                        undefined.add(tm.Param(
+                                elements.getName("o" + o),
+                                new Type.ClassType(
+                                        new Type.JCNoType(),
+                                        javacList(new Type[0]),
+                                        elements.getTypeElement("java.lang.Object")  // Object is temporary, real type will be filled in the second round
+                                ),
+                                method.sym
+                        ));
+                    }
+
+                    // add the new method to the appropriate Set inside the Map
+                    Type currType = mi.getParameters().get(i);
+                    boolean isRoot = roots.contains(currType);
+                    acceptMethods.putIfAbsent(currType, new HashSet<>());
+                    acceptMethods.get(currType).add(new AcceptMethod(name, mm, method.sym, i, isRoot, defined, undefined));
+                }
+            }
+
+            result.put(mm, acceptMethods);
+
+        }
+        return result;
+    }
+
+    @Deprecated
     private void generateVisitableBase() {
         for (MethodModel mm : originalMethods.keySet()) {
             PackageElement pck = elements.getPackageOf(mm.getParentElement());
@@ -132,6 +223,7 @@ public class ProcessorVisitor extends MultidispatchProcessor {
         }
     }
 
+    @Deprecated
     private void generateVisitor() {
         for (MethodModel mm : originalMethods.keySet()) {
             PackageElement pck = elements.getPackageOf(mm.getParentElement());
@@ -215,91 +307,16 @@ public class ProcessorVisitor extends MultidispatchProcessor {
         }
     }
 
-    private void modifyVisitableClasses(RoundEnvironment roundEnv) {
 
-        for (MethodModel mm : this.acceptMethods.keySet()) {
 
-            CodeGeneratorVisitor generator = new CodeGeneratorVisitor(super.tm, super.elements, super.symtab, mm, this.acceptMethods.get(mm));
+    private void modifyVisitableClasses(RoundEnvironment roundEnv, CodeGeneratorVisitor generator) {
 
-            for (Element e : roundEnv.getElementsAnnotatedWith(MultiDispatchVisitable.class)) {
-                JCTree.JCClassDecl classDecl = ((JCTree.JCClassDecl) trees.getPath(e).getLeaf());
+        for (Element e : roundEnv.getElementsAnnotatedWith(MultiDispatchVisitable.class)) {
+            JCTree.JCClassDecl classDecl = ((JCTree.JCClassDecl) trees.getPath(e).getLeaf());
 
-                Type type = classDecl.sym.type;
-                if (this.acceptMethods.get(mm).containsKey(type)) {
-                    generator.modifyVisitableClass(classDecl); // implement the Visitable interface (add the accept methods)
-                }
-            }
+            generator.modifyVisitableClass(classDecl); // implement the Visitable interface (add the accept methods)
         }
     }
 
 
-    private HashMap<MethodModel, HashMap<Type, Set<AcceptMethod>>> generateAcceptMethods(RoundEnvironment roundEnv) {
-
-        HashMap<MethodModel, HashMap<Type, Set<AcceptMethod>>> result = new HashMap<>();
-
-        // fill the Visitable class with default methods
-        for (MethodModel mm : originalMethods.keySet()) {
-            Map<String, Type> possibleTypes = new HashMap<>();
-            for (MethodInstance mi : originalMethods.get(mm)) {
-                for (Type param : mi.getParameters()) {
-                    possibleTypes.put(param.tsym.name.toString(), param);
-                }
-            }
-
-            // generate a Map of all possible accept method
-            // acceptMethods maps a type to a set of methods where it is relevant (it will be resolved by them)
-            // Visitable class will implement all the methods with default body
-            // each visitable class will implement the relevant methods
-            HashMap<Type, Set<AcceptMethod>> acceptMethods = new HashMap<>();
-            for (MethodInstance mi : originalMethods.get(mm)) {
-
-                for (int i = 0; i < mm.getNumParameters(); i++) {
-                    String name = "accept" + (i + 1);
-
-                    JCTree.JCMethodDecl method = tm.MethodDef(
-                            tm.Modifiers(0), // no modifiers
-                            elements.getName(name),
-                            mm.getReturnValue(),  // return type from original method
-                            com.sun.tools.javac.util.List.from(new JCTree.JCTypeParameter[0]),  // no type parameters (TODO: check this)
-                            com.sun.tools.javac.util.List.from(new JCTree.JCVariableDecl[0]),  // arguments are added below
-                            com.sun.tools.javac.util.List.from(new JCTree.JCExpression[0]),  // no exception throwing
-                            null,  // body is added below
-                            null  // no default value
-                    );
-
-                    List<JCTree.JCVariableDecl> defined = new ArrayList<>();
-                    for (int d = 0; d < i; d++) {
-
-                        defined.add(tm.Param(
-                                elements.getName("d" + d),
-                                mi.getParameters().get(d),
-                                method.sym
-                        ));
-                    }
-
-                    List<JCTree.JCVariableDecl> undefined = new ArrayList<>();
-                    for (int o = i + 1; o < mm.getNumParameters(); o++) {
-                        undefined.add(tm.Param(
-                                elements.getName("o" + o),
-                                new Type.ClassType(
-                                        new Type.JCNoType(),
-                                        com.sun.tools.javac.util.List.from(new Type[0]),
-                                        elements.getTypeElement("java.lang.Object")  // Object is temporary, real type will be filled in the second round
-                                ),
-                                method.sym
-                        ));
-                    }
-
-                    // add the new method to the appropriate Set inside the Map
-                    Type currType = mi.getParameters().get(i);
-                    acceptMethods.putIfAbsent(currType, new HashSet<>());
-                    acceptMethods.get(currType).add(new AcceptMethod(name, mm, method.sym, i, defined, undefined));
-                }
-            }
-
-            result.put(mm, acceptMethods);
-
-        }
-        return result;
-    }
 }

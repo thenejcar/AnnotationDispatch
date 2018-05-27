@@ -101,35 +101,4 @@ public abstract class MultidispatchProcessor extends AbstractProcessor {
         }
         return map;
     }
-
-
-    /*
-     * Inject generated method in the parent class of the original ones
-     * */
-    protected void addNewMethods() {
-
-        for (MethodModel model : generatedMethods.keySet()) {
-            JCTree.JCMethodDecl generatedMethod = generatedMethods.get(model);
-
-            JCTree.JCClassDecl classDecl = model.getParentClass();
-
-            classDecl.defs = classDecl.defs.append(generatedMethod);  // add the method to the class
-
-            List<Type> paramTypes = new ArrayList<>();
-            for (JCTree.JCVariableDecl varDecl : generatedMethod.params) {
-                paramTypes.add(varDecl.type);
-            }
-            Symbol.MethodSymbol methodSymbol = new Symbol.MethodSymbol(
-                    generatedMethod.mods.flags,
-                    generatedMethod.name,
-                    new Type.MethodType(javacList(paramTypes), generatedMethod.getReturnType().type, javacList(new Type[0]), symtab.methodClass),
-                    classDecl.sym
-            );
-
-            // use reflection to add the generated method symbol to the parent class
-            Utils.addMethodSymbolToClass(classDecl, methodSymbol);
-
-            System.out.println("Method " + generatedMethod.name + " added to " + classDecl.name);
-        }
-    }
 }
