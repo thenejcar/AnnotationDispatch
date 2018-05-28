@@ -17,17 +17,11 @@ import com.sun.tools.javac.util.Name;
 import si.kisek.annotationdispatch.models.MethodInstance;
 import si.kisek.annotationdispatch.models.MethodModel;
 import si.kisek.annotationdispatch.utils.ReplaceMethodsVisitor;
-import si.kisek.annotationdispatch.utils.Utils;
 
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
-import javax.lang.model.element.TypeElement;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.util.*;
-
-import static si.kisek.annotationdispatch.utils.Utils.javacList;
 
 
 @SupportedAnnotationTypes({
@@ -47,7 +41,6 @@ public abstract class MultidispatchProcessor extends AbstractProcessor {
     Symtab symtab;  // javac's sym table
 
     Map<MethodModel, Set<MethodInstance>> originalMethods = new HashMap<>();
-    Map<MethodModel, JCTree.JCMethodDecl> generatedMethods = new HashMap<>();
 
     //get the compiler trees
     @Override
@@ -100,5 +93,16 @@ public abstract class MultidispatchProcessor extends AbstractProcessor {
             }
         }
         return map;
+    }
+
+    public void replaceMethodsInClass(MethodModel toReplace, JCTree.JCMethodDecl newMethod, JCTree.JCClassDecl targetClass) {
+
+        for (MethodInstance oldMethod : originalMethods.get(toReplace)) {
+            ReplaceMethodsVisitor visitor = new ReplaceMethodsVisitor(oldMethod, newMethod.getName());
+            visitor.visitClassDef(targetClass);
+        }
+
+        System.out.println("Calls to " + toReplace.getName() + " in " + targetClass.name + " replaced with calls to " + newMethod.getName());
+
     }
 }

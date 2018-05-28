@@ -2,24 +2,30 @@ package si.kisek.annotationdispatchdemo;
 
 import si.kisek.annotationdispatch.MultiDispatch;
 import si.kisek.annotationdispatch.MultiDispatchClass;
+import si.kisek.annotationdispatch.MultiDispatchVisitable;
 
 @MultiDispatchClass
 public class AnotherClass {
 
 
+    @MultiDispatchVisitable
     static class Nekej {
-        void metoda() {
-            System.out.println("jaz sem nekej");
+        String metoda() {
+            return "Nekej";
         }
     }
 
+    @MultiDispatchVisitable
     static class NekajDrugega extends Nekej {
         @Override
-        void metoda() {
-            System.out.println("jaz sem nekaj drugega");
+        String metoda() {
+            return "NekajDrugega";
         }
     }
 
+    public static void main(String[] args) {
+        doSomething();
+    }
 
 
     public static void doSomething() {
@@ -38,12 +44,12 @@ public class AnotherClass {
 
         System.out.println();
 
-        // multip[le dispatch -- needs the annotations on method declarations
-        System.out.print("n1: ");
+        // multiple dispatch -- needs the annotations on method declarations
+        System.out.print("n1 (should be " + n1.metoda() + "): ");
         kdoJeParameter(n1);
-        System.out.print("n2: ");
+        System.out.print("n2 (should be " + n2.metoda() + "): ");
         kdoJeParameter(n2);
-        System.out.print("n3: ");
+        System.out.print("nd (should be " + nd.metoda() + "): ");
         kdoJeParameter(nd);
 
         System.out.print("oba: ");

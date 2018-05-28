@@ -4,12 +4,10 @@ package si.kisek.annotationdispatch;
 import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree;
-import com.sun.tools.javac.util.Name;
 import si.kisek.annotationdispatch.models.MethodInstance;
 import si.kisek.annotationdispatch.models.MethodModel;
 import si.kisek.annotationdispatch.models.MethodSwitcher;
 import si.kisek.annotationdispatch.utils.CodeGeneratorSwitch;
-import si.kisek.annotationdispatch.utils.ReplaceMethodsVisitor;
 import si.kisek.annotationdispatch.utils.Utils;
 
 import javax.annotation.processing.*;
@@ -33,6 +31,8 @@ import static si.kisek.annotationdispatch.utils.Utils.javacList;
 })
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 public class ProcessorSwitch extends MultidispatchProcessor {
+
+    private Map<MethodModel, JCTree.JCMethodDecl> generatedMethods = new HashMap<>();
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
@@ -97,17 +97,8 @@ public class ProcessorSwitch extends MultidispatchProcessor {
         //TODO: check if we really need the class annotation, maybe we can find all places where annotated methods were called?
 
         for (MethodModel model : originalMethods.keySet()) {
-            Name newMethodName = generatedMethods.get(model).name;
-
             for (Element e : roundEnv.getElementsAnnotatedWith(MultiDispatchClass.class)) {
-                JCTree.JCClassDecl classTree = (JCTree.JCClassDecl) trees.getPath(e).getLeaf();
-
-                for (MethodInstance oldMethod : originalMethods.get(model)) {
-                    ReplaceMethodsVisitor visitor = new ReplaceMethodsVisitor(oldMethod, newMethodName);
-                    visitor.visitClassDef(classTree);
-                }
-
-                System.out.println("Calls to " + model.getName() + " in " + classTree.name + " replaced with calls to " + newMethodName);
+                super.replaceMethodsInClass(model, generatedMethods.get(model), (JCTree.JCClassDecl) trees.getPath(e).getLeaf());
             }
         }
     }

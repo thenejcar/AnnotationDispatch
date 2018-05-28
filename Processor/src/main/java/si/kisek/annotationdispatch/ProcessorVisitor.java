@@ -5,10 +5,13 @@ import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.code.TypeTag;
 import com.sun.tools.javac.tree.JCTree;
+import com.sun.tools.javac.util.Name;
 import si.kisek.annotationdispatch.models.AcceptMethod;
 import si.kisek.annotationdispatch.models.MethodInstance;
 import si.kisek.annotationdispatch.models.MethodModel;
 import si.kisek.annotationdispatch.utils.CodeGeneratorVisitor;
+import si.kisek.annotationdispatch.utils.ReplaceMethodsVisitor;
+import si.kisek.annotationdispatch.utils.Utils;
 
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
@@ -70,7 +73,11 @@ public class ProcessorVisitor extends MultidispatchProcessor {
 
                 modifyVisitableClasses(roundEnv, generator);
 
-                generator.createVisitorInitMethod();
+                JCTree.JCMethodDecl initMethod = generator.createVisitorInitMethod();
+
+                for (Element e : roundEnv.getElementsAnnotatedWith(MultiDispatchClass.class)) {
+                    super.replaceMethodsInClass(mm, initMethod, (JCTree.JCClassDecl) trees.getPath(e).getLeaf());
+                }
             }
 
             return true;
@@ -104,7 +111,7 @@ public class ProcessorVisitor extends MultidispatchProcessor {
             for (Type t : possibleTypes.values()) {
                 boolean isRoot = true;
                 for (Type candidate : possibleTypes.values()) {
-                    if (!t.equals(candidate) && super.types.isSubtype(t, candidate)) {
+                    if (t.equals(candidate) && super.types.isSubtype(t, candidate)) {
                         isRoot = false;
                         break;
                     }
@@ -313,7 +320,7 @@ public class ProcessorVisitor extends MultidispatchProcessor {
 
         for (Element e : roundEnv.getElementsAnnotatedWith(MultiDispatchVisitable.class)) {
             JCTree.JCClassDecl classDecl = ((JCTree.JCClassDecl) trees.getPath(e).getLeaf());
-
+            // TODO: detect and complain when some accept types are missing the annotation
             generator.modifyVisitableClass(classDecl); // implement the Visitable interface (add the accept methods)
         }
     }

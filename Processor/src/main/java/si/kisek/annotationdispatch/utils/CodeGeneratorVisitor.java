@@ -351,7 +351,7 @@ public class CodeGeneratorVisitor {
         Utils.addSymbolToClass(mm.getParentClass(), newSymbol);
 
         // create symbol for the constructor method
-        Utils.addSymbolToClass(newClass, createSymbolForMethod(constructor, newSymbol));
+//        Utils.addSymbolToClass(newClass, createSymbolForMethod(constructor, newSymbol));
 
         this.exceptionDecl = newClass;
         return newClass;
@@ -361,7 +361,7 @@ public class CodeGeneratorVisitor {
     public void modifyVisitableClass(JCTree.JCClassDecl classDecl) {
 
         if (!this.acceptMethods.containsKey(classDecl.sym.type)) {
-            // class that is not used as a parameter can be left alone
+            // class that is not used as a parameter can be left alone TODO: what about root accept Types?
             // it should inherit accepts from parent, or is incompatible anyways
             return;
         }
@@ -457,7 +457,7 @@ public class CodeGeneratorVisitor {
                     // throw exception when called, since the method is not relevant for this type
 
                     List<JCTree.JCExpression> exceptionParams = new ArrayList<>();
-                    exceptionParams.add(tm.Literal(mm.getName().toString() + " not dispatched property"));
+                    exceptionParams.add(tm.Literal(mm.getName().toString() + " not dispatched properly"));
 //                    for (JCTree.JCVariableDecl varDecl : am.getDefinedParameters())
 //                        exceptionParams.add(tm.Ident(varDecl.getName()));
 //                    exceptionParams.add(tm.Ident(el.getName("this")));
@@ -493,7 +493,7 @@ public class CodeGeneratorVisitor {
         System.out.println("Visitable class " + classDecl.name + " modified.");
     }
 
-    public void createVisitorInitMethod() {
+    public JCTree.JCMethodDecl createVisitorInitMethod() {
         JCTree.JCMethodDecl methodDecl = tm.MethodDef(
                 tm.Modifiers(Flags.PUBLIC | Flags.STATIC),
                 el.getName("dispatch_" + mm.getRandomness()),
@@ -542,6 +542,8 @@ public class CodeGeneratorVisitor {
 
         mm.getParentClass().defs = mm.getParentClass().defs.append(methodDecl);
         Utils.addSymbolToClass(mm.getParentClass(), createSymbolForMethod(methodDecl, mm.getParentClass().sym));
+
+        return methodDecl;
     }
 
 
