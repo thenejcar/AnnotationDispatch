@@ -26,6 +26,7 @@ public class CodeGeneratorVisitor {
     // additional classes generated
     private JCTree.JCClassDecl visitableDecl;
     private JCTree.JCClassDecl visitorDecl;
+
     private JCTree.JCClassDecl exceptionDecl;
 
     public CodeGeneratorVisitor(TreeMaker tm, JavacElements el, JavacTypes types, Symtab symtab, MethodModel mm, HashMap<Type, Set<AcceptMethod>> acceptMethods, Set<MethodInstance> methodInstances) {
@@ -130,7 +131,11 @@ public class CodeGeneratorVisitor {
 
                 // add to class and register in symtab
                 this.visitableDecl.defs = this.visitableDecl.defs.append(methodDecl);
-                Utils.addSymbolToClass(this.visitableDecl, createSymbolForMethod(methodDecl, this.visitableDecl.sym));
+
+                Symbol.MethodSymbol methodSymbol = createSymbolForMethod(methodDecl, this.visitableDecl.sym);
+                Utils.addSymbolToClass(this.visitableDecl, methodSymbol);
+                Utils.addSymbolToClass(mm.getParentClass(), methodSymbol);
+                Utils.addSymbolToClass(this.visitorDecl, methodSymbol);
             }
         }
     }
@@ -231,9 +236,11 @@ public class CodeGeneratorVisitor {
                 }
                 methodDecl.body = tm.Block(0, javacList(returnBlock));
 
+                Symbol.MethodSymbol methodSymbol = createSymbolForMethod(methodDecl, this.visitorDecl.sym);
+
                 // add to class and register in symtab
                 this.visitorDecl.defs = this.visitorDecl.defs.append(methodDecl);
-                Utils.addSymbolToClass(this.visitorDecl, createSymbolForMethod(methodDecl, this.visitorDecl.sym));
+                Utils.addSymbolToClass(this.visitorDecl, methodSymbol);
             }
         }
 
@@ -361,7 +368,7 @@ public class CodeGeneratorVisitor {
     public void modifyVisitableClass(JCTree.JCClassDecl classDecl) {
 
         if (!this.acceptMethods.containsKey(classDecl.sym.type)) {
-            // class that is not used as a parameter can be left alone TODO: what about root accept Types?
+            // class that is not used as a parameter can be left alone TODO: what about root accept Types? - check if it implements this.visitable
             // it should inherit accepts from parent, or is incompatible anyways
             return;
         }
@@ -373,8 +380,16 @@ public class CodeGeneratorVisitor {
 
         Set<AcceptMethod> alreadyImplemented = new HashSet<>();
 
+        // get a list of all types, with current class's type being first
+        // this is necessary, so that any duplicated methods of this class are implemented properly (with body)
+        List<Type> typesForMethods = new ArrayList<>();
+        typesForMethods.add(classDecl.sym.type); // first, add the current method's type
         for (Type t : acceptMethods.keySet()) {
+            if (!t.equals(classDecl.sym.type))
+                typesForMethods.add(t);
+        }
 
+        for (Type t : typesForMethods) {
             for (AcceptMethod am : acceptMethods.get(t)) {
                 if (alreadyImplemented.contains(am)) {
                     continue;
@@ -477,8 +492,15 @@ public class CodeGeneratorVisitor {
                 }
 
                 // add the method to class and register it in the symbol table
+                Symbol.MethodSymbol methodSymbol = createSymbolForMethod(methodDecl, classDecl.sym);
+
                 classDecl.defs = classDecl.defs.append(methodDecl);
-                Utils.addSymbolToClass(classDecl, createSymbolForMethod(methodDecl, classDecl.sym));
+                Utils.addSymbolToClass(classDecl, methodSymbol);
+
+                // add the method to parent class too
+                // TODO: maybe to visitor too?
+                Utils.addSymbolToClass(mm.getParentClass(), methodSymbol);
+                Utils.addSymbolToClass(this.visitorDecl, methodSymbol);
             }
         }
 

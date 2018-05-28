@@ -98,33 +98,34 @@ public class ProcessorVisitor extends MultidispatchProcessor {
 
         // fill the Visitable class with default methods
         for (MethodModel mm : originalMethods.keySet()) {
-            Map<String, Type> possibleTypes = new HashMap<>();
+            Set<Type> possibleTypes = new HashSet<>();
             for (MethodInstance mi : originalMethods.get(mm)) {
-                for (Type param : mi.getParameters()) {
-                    possibleTypes.put(param.tsym.name.toString(), param);
-                }
+                possibleTypes.addAll(mi.getParameters());
             }
+
+            HashMap<Type, Set<AcceptMethod>> acceptMethods = new HashMap<>();
 
             Set<Type> roots = new HashSet<>();
 
             // find roots - types with no visitable superclass
-            for (Type t : possibleTypes.values()) {
+            for (Type t : possibleTypes) {
                 boolean isRoot = true;
-                for (Type candidate : possibleTypes.values()) {
-                    if (t.equals(candidate) && super.types.isSubtype(t, candidate)) {
+                for (Type candidate : possibleTypes) {
+                    if (!t.equals(candidate) && super.types.isSubtype(t, candidate)) {
                         isRoot = false;
                         break;
                     }
                 }
                 if (isRoot)
                     roots.add(t);
+
+                acceptMethods.put(t, new HashSet<>()); // initialise the map
             }
 
             // generate a Map of all possible accept method
             // acceptMethods maps a type to a set of methods where it is relevant (it will be resolved by them)
             // Visitable class will implement all the methods with default body
             // each visitable class will implement the relevant methods
-            HashMap<Type, Set<AcceptMethod>> acceptMethods = new HashMap<>();
             for (MethodInstance mi : originalMethods.get(mm)) {
 
                 for (int i = 0; i < mm.getNumParameters(); i++) {
@@ -167,7 +168,6 @@ public class ProcessorVisitor extends MultidispatchProcessor {
                     // add the new method to the appropriate Set inside the Map
                     Type currType = mi.getParameters().get(i);
                     boolean isRoot = roots.contains(currType);
-                    acceptMethods.putIfAbsent(currType, new HashSet<>());
                     acceptMethods.get(currType).add(new AcceptMethod(name, mm, method.sym, i, isRoot, defined, undefined));
                 }
             }

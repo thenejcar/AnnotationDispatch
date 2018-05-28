@@ -35,12 +35,10 @@ public class AnotherClass {
         NekajDrugega nd = new NekajDrugega();
 
         // single dispatch -- default java behavior
-        System.out.print("n1: ");
-        n1.metoda();
-        System.out.print("n2: ");
-        n2.metoda();
-        System.out.print("nd: ");
-        nd.metoda();
+        System.out.println("n1: " + n1.metoda());
+
+        System.out.println("n2: " + n2.metoda());
+        System.out.println("nd: " + nd.metoda());
 
         System.out.println();
 
