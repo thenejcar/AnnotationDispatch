@@ -7,6 +7,18 @@
     <groupId>si.kisek.annotationdispatch</groupId>
     <artifactId>example</artifactId>
     <version>1.0</version>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>8</source>
+                    <target>8</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -51,6 +63,28 @@
                             <target>1.8</target>
                             <annotationProcessors>
                                 <annotationProcessor>si.kisek.annotationdispatch.ProcessorVisitor</annotationProcessor>
+                            </annotationProcessors>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>annotation-processing-reflection</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <version>3.6.2</version>
+                        <configuration>
+                            <verbose>true</verbose>
+                            <compilerVersion>1.8</compilerVersion>
+                            <compilerArgument>-Xlint:all</compilerArgument>
+                            <source>1.8</source>
+                            <target>1.8</target>
+                            <annotationProcessors>
+                                <annotationProcessor>si.kisek.annotationdispatch.ProcessorReflection</annotationProcessor>
                             </annotationProcessors>
                         </configuration>
                     </plugin>
