@@ -25,6 +25,7 @@ public class MethodSwitcher {
     private MethodModel methodModel;
     private Types types;
     private SwitcherNode root;
+    private List<MethodInstance> sortedInstances = null;
 
     /*
      * build a method switcher from given method instances
@@ -72,5 +73,25 @@ public class MethodSwitcher {
 
     public SwitcherNode getRoot() {
         return root;
+    }
+
+    public List<MethodInstance> getSortedInstances() {
+        // sorted instances are lazy, because we don't need them every time we use the method switcher
+        if (this.sortedInstances == null) {
+            this.sortedInstances = new ArrayList<>();
+            dfs(this.root);
+        }
+
+        return this.sortedInstances;
+    }
+
+    // sort the method instances by listing the leaves with dfs
+    private void dfs(SwitcherNode node) {
+        if (node.subtree != null)
+            for (SwitcherNode child : node.subtree) {
+                dfs(child);
+            }
+        if (node.leaf != null)
+            sortedInstances.add(node.leaf);
     }
 }

@@ -11,6 +11,7 @@ import javax.lang.model.util.Elements;
 import java.util.*;
 
 import static si.kisek.annotationdispatch.utils.Utils.javacList;
+import static si.kisek.annotationdispatch.utils.Utils.emptyExpr;
 
 public class CodeGeneratorSwitch {
     private TreeMaker tm;
@@ -54,7 +55,7 @@ public class CodeGeneratorSwitch {
                 List<JCTree.JCStatement> returnBlock = new ArrayList<>();
                 returnBlock.add(tm.Exec(
                         tm.Apply(
-                                javacList(new JCTree.JCExpression[0]),
+                                emptyExpr(),
                                 tm.Ident(parentnode.leaf.getName()),
                                 javacList(parameters)
                         )
@@ -67,7 +68,7 @@ public class CodeGeneratorSwitch {
                 // return the value
                 return tm.Return(
                         tm.Apply(
-                                javacList(new JCTree.JCExpression[0]),
+                                emptyExpr(),
                                 tm.Ident(parentnode.leaf.getName()),
                                 javacList(parameters)
                         )
@@ -80,7 +81,7 @@ public class CodeGeneratorSwitch {
 
         return tm.Throw(tm.NewClass(
                 null,
-                javacList(new JCTree.JCExpression[0]),
+                emptyExpr(),
                 tm.Ident(el.getName("RuntimeException")),
                 javacList(Collections.singletonList(
                         errorMessage(generatedMethod.params.listIterator())
@@ -95,9 +96,9 @@ public class CodeGeneratorSwitch {
                 JCTree.Tag.PLUS,
                 tm.Literal("No method definition for provided combination of types: "),
                 tm.Apply(
-                        javacList(new JCTree.JCExpression[0]),
+                        emptyExpr(),
                         tm.Select(tm.Ident(iterator.next()), el.getName("getClass")),
-                        javacList(new JCTree.JCExpression[0])
+                        emptyExpr()
                 )
         );
 
@@ -110,9 +111,9 @@ public class CodeGeneratorSwitch {
                             tm.Literal(", ")
                     ),
                     tm.Apply(
-                            javacList(new JCTree.JCExpression[0]),
+                            emptyExpr(),
                             tm.Select(tm.Ident(iterator.next()), el.getName("getClass")),
-                            javacList(new JCTree.JCExpression[0])
+                            emptyExpr()
                     )
             );
         }

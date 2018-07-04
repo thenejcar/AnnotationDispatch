@@ -5,6 +5,7 @@ import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree;
 import si.kisek.annotationdispatch.models.MethodModel;
+import si.kisek.annotationdispatch.utils.CodeGeneratorReflection;
 import si.kisek.annotationdispatch.utils.Utils;
 
 import javax.annotation.processing.RoundEnvironment;
@@ -31,7 +32,9 @@ import static si.kisek.annotationdispatch.utils.Utils.javacList;
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 public class ProcessorReflection extends MultidispatchProcessor {
 
-    private Map<MethodModel, JCTree.JCMethodDecl> generatedMethods = new HashMap<>();
+    private JCTree.JCVariableDecl methodMapDecl;
+    private JCTree.JCMethodDecl initMethodDecl;
+    private Map<MethodModel, JCTree.JCMethodDecl> generatedMethods;
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
@@ -46,13 +49,19 @@ public class ProcessorReflection extends MultidispatchProcessor {
             // no annotated methods, skip
             return true;
         }
-        JCTree.JCMethodDecl initMethod = generateInitCalls(roundEnv);
+        // generate all the code
+        CodeGeneratorReflection generator = new CodeGeneratorReflection(tm, elements, types, symtab, originalMethods);
+        methodMapDecl = generator.generateMethodMapDecl();
+        initMethodDecl = generator.generateInitMethod();
+        generatedMethods = generator.generateDispatchers();
 
-        generateDispatchers(roundEnv);
-
+        // use generated methods instead of the original ones
         replaceMethodCalls(roundEnv);
 
-        modifyConstructor();
+        // add the init logic to the constructors
+        addInitLogicToClass();
+
+        // fill the symtables
         addNewMethods();
 
         return true;
@@ -60,26 +69,9 @@ public class ProcessorReflection extends MultidispatchProcessor {
 
 
     /*
-    * Generate the code that creates the map of mehods in the class, that will be placed in the constructor
-    * */
-    private JCTree.JCMethodDecl generateInitCalls(RoundEnvironment roundEnv) {
-
-        return null;
-    }
-
-    /*
-     * Generate the code that accepts method name and list of params and dispatches to correct original method
+     * Replace calls to the orignal methods with the calls to generated disatcher
      * */
-    private void generateDispatchers(RoundEnvironment roundEnv) {
-
-    }
-
-    /*
-    * Replace calls to the orignal methods with the calls to generated disatcher
-    * */
     private void replaceMethodCalls(RoundEnvironment roundEnv) {
-        //TODO: check if we really need the class annotation, maybe we can find all places where annotated methods were called?
-
         for (MethodModel model : originalMethods.keySet()) {
             for (Element e : roundEnv.getElementsAnnotatedWith(MultiDispatchClass.class)) {
                 super.replaceMethodsInClass(model, generatedMethods.get(model), (JCTree.JCClassDecl) trees.getPath(e).getLeaf());
@@ -88,12 +80,11 @@ public class ProcessorReflection extends MultidispatchProcessor {
     }
 
     /*
-    * Add a call to init method to the constructor
-    * */
-    private void modifyConstructor() {
+     * Add the var decl to class and call init method in all constructors
+     * */
+    private void addInitLogicToClass() {
 
     }
-
 
 
     /*

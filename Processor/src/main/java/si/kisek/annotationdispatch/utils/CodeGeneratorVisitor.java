@@ -11,6 +11,7 @@ import si.kisek.annotationdispatch.models.MethodModel;
 
 import java.util.*;
 
+import static si.kisek.annotationdispatch.utils.Utils.emptyExpr;
 import static si.kisek.annotationdispatch.utils.Utils.javacList;
 
 public class CodeGeneratorVisitor {
@@ -88,7 +89,7 @@ public class CodeGeneratorVisitor {
                 el.getName(mm.getVisitableName()),
                 javacList(new JCTree.JCTypeParameter[0]),
                 null,
-                javacList(new JCTree.JCExpression[0]),
+                emptyExpr(),
                 javacList(new JCTree[0])
         );
 
@@ -151,7 +152,7 @@ public class CodeGeneratorVisitor {
                 el.getName(mm.getVisitorName()),
                 javacList(new JCTree.JCTypeParameter[0]),
                 null,
-                javacList(new JCTree.JCExpression[0]),
+                emptyExpr(),
                 javacList(new JCTree[0])
         );
 
@@ -222,7 +223,7 @@ public class CodeGeneratorVisitor {
                 }
 
                 call = tm.Apply(
-                        javacList(new JCTree.JCExpression[0]),
+                        emptyExpr(),
                         tm.Select(tm.Ident(currentParam.getName()), el.getName("accept" + (am.getLevel() + 1))),
                         javacList(callParameters)
                 );
@@ -279,7 +280,7 @@ public class CodeGeneratorVisitor {
 
             // call to original method
             JCTree.JCMethodInvocation call = tm.Apply(
-                    javacList(new JCTree.JCExpression[0]),
+                    emptyExpr(),
                     tm.Select(tm.Ident(mm.getParentClass().name), mm.getName()),
                     javacList(callParameters)
             );
@@ -310,7 +311,7 @@ public class CodeGeneratorVisitor {
                 el.getName(mm.getExceptionName()),
                 javacList(new JCTree.JCTypeParameter[0]),
                 null,
-                javacList(new JCTree.JCExpression[0]),
+                emptyExpr(),
                 javacList(new JCTree[0])
         );
 
@@ -337,7 +338,7 @@ public class CodeGeneratorVisitor {
 
         constructor.body = tm.Block(0, javacList(Collections.singletonList(
                 tm.Exec(tm.Apply(
-                        javacList(new JCTree.JCExpression[0]),
+                        emptyExpr(),
                         tm.Ident(el.getName("super")),
                         javacList(Collections.singletonList(tm.Ident(stringMessage.name)))
                 ))
@@ -424,13 +425,13 @@ public class CodeGeneratorVisitor {
                     // implement the body, because the method is relevant for this type
 
                     JCTree.JCMethodInvocation visitCall = tm.Apply(
-                            javacList(new JCTree.JCExpression[0]),
+                            emptyExpr(),
                             tm.Select(tm.Ident(visitorParam.getName()), el.getName("visit" + (am.getLevel() + 1))),
                             javacList(visitParameters)
                     );
 
                     JCTree.JCMethodInvocation superCall = tm.Apply(
-                            javacList(new JCTree.JCExpression[0]),
+                            emptyExpr(),
                             tm.Select(tm.Ident(el.getName("super")), el.getName("accept" + (am.getLevel() + 1))),
                             javacList(superParameters)
                     );
@@ -483,7 +484,7 @@ public class CodeGeneratorVisitor {
                     methodDecl.body = tm.Block(0, javacList(Collections.singletonList(
                             tm.Throw(tm.NewClass(
                                     null,
-                                    javacList(new JCTree.JCExpression[0]),
+                                    emptyExpr(),
                                     tm.Ident(this.exceptionDecl.name),
                                     javacList(exceptionParams),
                                     null
@@ -540,9 +541,9 @@ public class CodeGeneratorVisitor {
         List<JCTree.JCExpression> callParameters = new ArrayList<>();
         callParameters.add(tm.NewClass(
                 null,
-                javacList(new JCTree.JCExpression[0]),
+                emptyExpr(),
                 tm.Ident(visitorDecl.name),
-                javacList(new JCTree.JCExpression[0]),
+                emptyExpr(),
                 null
         ));
         ListIterator<JCTree.JCVariableDecl> iter = params.listIterator();
@@ -552,7 +553,7 @@ public class CodeGeneratorVisitor {
         }
 
         JCTree.JCMethodInvocation acceptCall = tm.Apply(
-                javacList(new JCTree.JCExpression[0]),
+                emptyExpr(),
                 tm.Select(tm.Ident(params.get(0).name), el.getName("accept1")),
                 javacList(callParameters)
         );

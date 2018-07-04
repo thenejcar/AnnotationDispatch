@@ -10,6 +10,7 @@ import si.kisek.annotationdispatch.models.MethodModel;
 import javax.lang.model.element.Element;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Type;
 
 public class Utils {
 
@@ -20,6 +21,14 @@ public class Utils {
 
     public static <T> com.sun.tools.javac.util.List<T> javacList(T[] array) {
         return com.sun.tools.javac.util.List.from(array);
+    }
+
+    public static <T> com.sun.tools.javac.util.List<T> asJavacList(T... elements) {
+        return com.sun.tools.javac.util.List.from(elements);
+    }
+
+    public static com.sun.tools.javac.util.List<JCTree.JCExpression> emptyExpr() {
+        return javacList(new JCTree.JCExpression[0]);
     }
 
     public static void addSymbolToClass(JCTree.JCClassDecl classDecl, Symbol symbol) {
