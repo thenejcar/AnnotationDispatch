@@ -27,6 +27,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.util.*;
 
+import static si.kisek.annotationdispatch.utils.Utils.emptyExpr;
 import static si.kisek.annotationdispatch.utils.Utils.javacList;
 
 

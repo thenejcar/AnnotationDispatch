@@ -13,6 +13,7 @@ import si.kisek.annotationdispatch.models.MethodInstance;
 import si.kisek.annotationdispatch.models.MethodModel;
 import si.kisek.annotationdispatch.models.MethodSwitcher;
 
+import javax.swing.text.html.HTML;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -124,12 +125,15 @@ public class CodeGeneratorReflection {
                         ).collect(Collectors.toList())
                 );
 
-                tryBlock.add(tm.Exec(tm.App(
+                tryBlock.add(tm.Exec(tm.Apply(
+                        emptyExpr(),
                         tm.Select(tm.Ident(tmpListName), el.getName("add")),
                         asJavacList(
-                                tm.App(
+                                tm.Apply(
+                                        emptyExpr(),
                                         tm.Select(
-                                                tm.App(
+                                                tm.Apply(
+                                                        emptyExpr(),
                                                         tm.Select(
                                                                 tm.Ident(el.getName("this")),
                                                                 el.getName("getClass")
@@ -147,7 +151,8 @@ public class CodeGeneratorReflection {
             // add the list to the map with 3 statements
 
             // methodMap.putIfAbsent("mm_name", new HashMap<>())
-            tryBlock.add(tm.Exec(tm.App(
+            tryBlock.add(tm.Exec(tm.Apply(
+                    emptyExpr(),
                     tm.Select(tm.Ident(el.getName(methodMapName())), el.getName("putIfAbsent")),
                     asJavacList(
                             tm.Literal(TypeTag.CLASS, mm.getName().toString()),
@@ -170,14 +175,16 @@ public class CodeGeneratorReflection {
                                     )
                             )
                     ),
-                    tm.App(
+                    tm.Apply(
+                            emptyExpr(),
                             tm.Select(tm.Ident(el.getName(methodMapName())), el.getName("get")),
                             asJavacList(tm.Literal(TypeTag.CLASS, mm.getName().toString()))
                     )
             ));
 
             // map.put(123, list)
-            tryBlock.add(tm.Exec(tm.App(
+            tryBlock.add(tm.Exec(tm.Apply(
+                    emptyExpr(),
                     tm.Select(tm.Ident(tmpMapName), el.getName("put")),
                     asJavacList(
                             tm.Literal(TypeTag.INT, mm.getNumParameters()),
@@ -197,7 +204,11 @@ public class CodeGeneratorReflection {
                                     null
                             ),
                             tm.Block(0, asJavacList(
-                                    tm.Exec(tm.App(tm.Select(tm.Ident(el.getName("e")), el.getName("printStackTrace")), emptyExpr()))
+                                    tm.Exec(tm.Apply(
+                                            emptyExpr(),
+                                            tm.Select(tm.Ident(el.getName("e")), el.getName("printStackTrace")),
+                                            emptyExpr()
+                                    ))
                             ))
                     )),
                     null));
@@ -210,6 +221,198 @@ public class CodeGeneratorReflection {
 
 
     public Map<MethodModel, JCTree.JCMethodDecl> generateDispatchers() {
+        JCTree.JCVariableDecl[] params = new JCTree.JCVariableDecl[2];
+        params[0] = tm.VarDef(
+                tm.Modifiers(0),
+                el.getName("methodName"),
+                tm.Ident(el.getName("String")),
+                null
+        );
+        params[0] = tm.VarDef(
+                tm.Modifiers(0),
+                el.getName("args"),
+                tm.TypeArray(
+                        tm.Ident(el.getName("Object"))
+                ),
+                null
+        );
+        JCTree.JCMethodDecl dispatcher = tm.MethodDef(
+                tm.Modifiers(Flags.PRIVATE),
+                el.getName("dispatch_" + randomness),
+                null,
+                com.sun.tools.javac.util.List.from(new JCTree.JCTypeParameter[0]),
+                javacList(params),
+                com.sun.tools.javac.util.List.from(new JCTree.JCExpression[0]),    // no exception throwing
+                null,                               // body added later
+                null                           // no default value
+        );
+
+        Name argsToMethod = el.getName("argsToMethod");
+
+        List<JCTree.JCStatement> stats = new ArrayList<>();
+
+        // Map<Integer, List<Method>> argsToMethod = methodMap.get(methodName);
+        stats.add(tm.VarDef(
+                tm.Modifiers(0),
+                argsToMethod,
+                tm.TypeApply(
+                        tm.Ident(el.getName("java.util.Map")),
+                        asJavacList(
+                                tm.Ident(el.getName("Integer")),
+                                tm.TypeApply(
+                                        tm.Ident(el.getName("java.util.List")),
+                                        javacList(Collections.singletonList(tm.Ident(el.getName("java.lang.reflect.Method"))))
+                                )
+                        )
+                ),
+                tm.Apply(
+                        emptyExpr(),
+                        tm.Select(tm.Ident(el.getName(methodMapName())), el.getName("get")),
+                        asJavacList(tm.Literal(TypeTag.CLASS, tm.Ident(params[0].getName())))
+                )
+        ));
+/*
+        // throw error if argsToMethod is null. We can skip this, really.
+        stats.add(tm.If(
+                tm.Parens(tm.Binary(JCTree.Tag.EQ, tm.Ident(argsToMethod), tm.Literal(TypeTag.BOT, null))),
+                tm.Block(0, asJavacList(tm.Throw(tm.NewClass(
+                        null,
+                        emptyExpr(),
+                        tm.Ident(el.getName("RuntimeException")),
+                        asJavacList(tm.Literal(TypeTag.CLASS, "argsToMethod map not initialised, internal processor error")),
+                        null
+                )))),
+                null
+        ));
+*/
+
+        // get list of possible methods
+        // List<Method> candidates = argsToMethod.get(args.length)
+        Name candidates = el.getName("candidates");
+        stats.add(tm.VarDef(
+                tm.Modifiers(0),
+                candidates,
+                tm.TypeApply(tm.Ident(el.getName("java.util.List")), asJavacList(tm.Ident(el.getName("java.lang.reflect.Method")))),
+                tm.Apply(
+                        emptyExpr(),
+                        tm.Select(tm.Ident(argsToMethod), el.getName("get")),
+                        asJavacList(tm.Select(tm.Ident(params[1].name), el.getName("length")))
+                )
+        ));
+
+        // if (candidates == null) throw new RuntimeException("Dispatching parameters failed: " + methodName + numParameters)
+        stats.add(tm.If(
+                tm.Parens(tm.Binary(JCTree.Tag.EQ, tm.Ident(candidates), tm.Literal(TypeTag.BOT, null))),
+                tm.Block(0, asJavacList(tm.Throw(tm.NewClass(
+                        null,
+                        emptyExpr(),
+                        tm.Ident(el.getName("RuntimeException")),
+                        asJavacList(tm.Binary(
+                                JCTree.Tag.PLUS,
+                                tm.Binary(
+                                    JCTree.Tag.PLUS,
+                                    tm.Literal(TypeTag.CLASS, "Dispatching parameters failed: "),
+                                    tm.Ident(params[0].getName())
+                        ),
+                                tm.Select(tm.Ident(params[1].getName()), el.getName("length"))
+                        )),
+                        null
+                )))),
+                null
+        ));
+
+        // Method bestMatch = null;
+        Name bestMatch = el.getName("bestMatch");
+        stats.add(tm.VarDef(
+                tm.Modifiers(0),
+                bestMatch,
+                tm.Ident(el.getName("java.lang.reflect.Method")),
+                tm.Literal(TypeTag.BOT, null)
+        ));
+
+        // for each candidate, check if we get a match
+        // they are already sorted, so the first match is best match
+        // something like this:
+        // for (Method m : candidates)
+        //     for (int i=0; i<args.length; i++)
+        //         if (m.getParameterTypes()[i].isAssignableFrom(args[i].getClass()))
+        //             bestMatch = m; break;
+        JCTree.JCVariableDecl outerForIterable = tm.VarDef(
+                tm.Modifiers(0),
+                el.getName("m"),
+                tm.Ident(el.getName("java.lang.reflect.Method")),
+                null
+        );
+        JCTree.JCVariableDecl innerForIndex = tm.VarDef(
+                tm.Modifiers(0),
+                el.getName("i"),
+                tm.TypeIdent(TypeTag.INT),
+                tm.Literal(TypeTag.INT, 0)
+        );
+
+        JCTree.JCIf innermostIf = tm.If(
+                tm.Parens(tm.Apply(
+                        emptyExpr(),
+                        // m.getParameterTypes()[i].isAssignableFrom
+                        tm.Select(
+                                tm.Indexed(
+                                    tm.Apply(
+                                            emptyExpr(),
+                                            tm.Select(tm.Ident(outerForIterable.getName()), el.getName("getParameterTypes")),
+                                            emptyExpr()
+                                    ),
+                                    tm.Ident(innerForIndex.getName())
+                                ),
+                                el.getName("isAssignableFrom")
+                        ),
+                        // args[i].getClass
+                        asJavacList(tm.Apply(
+                                emptyExpr(),
+                                tm.Select(
+                                        tm.Indexed(params[1].sym, tm.Ident(innerForIndex.getName())),
+                                        el.getName("getClass")
+                                ),
+                                emptyExpr()
+                        ))
+                )),
+                tm.Block(0, asJavacList(
+                        tm.Exec(tm.Assign(tm.Ident(bestMatch), tm.Ident(outerForIterable))),
+                        tm.Break(null)
+                )),
+                null
+        );
+        stats.add(tm.ForeachLoop(
+                outerForIterable,
+                tm.Ident(candidates),
+                tm.Block(0, asJavacList(
+                        tm.ForLoop(
+                                asJavacList(innerForIndex),
+                                tm.Binary(JCTree.Tag.LT, tm.Ident(innerForIndex.getName()), tm.Select(tm.Ident(params[1].getName()), el.getName("length"))),
+                                asJavacList(tm.Exec(tm.Unary(JCTree.Tag.POSTINC, tm.Ident(innerForIndex.getName())))),
+                                tm.Block(0, asJavacList(innermostIf))
+                        ),
+                        tm.If(
+                                tm.Parens(tm.Binary(JCTree.Tag.NE, tm.Ident(bestMatch), tm.Literal(TypeTag.BOT, null))),
+                                tm.Block(0, asJavacList(tm.Break(null))),
+                                null
+                        )
+                ))
+        ));
+
+        // if (bestMatch == null) throw new RuntimeException("no match")
+        stats.add(tm.If(
+                tm.Parens(tm.Binary(JCTree.Tag.EQ, tm.Ident(bestMatch), tm.Literal(TypeTag.BOT, null))),
+                tm.Block(0, asJavacList(tm.Throw(tm.NewClass(
+                        null,
+                        emptyExpr(),
+                        tm.Ident(el.getName("RuntimeException")),
+                        asJavacList(tm.Literal(TypeTag.CLASS, "no matching original method to dispatch the call to")),
+                        null
+                )))),                null
+        ));
+
+        // TODO: Object[] parameters = new Object[bestMatch.getParameterCount()];
+
         return null;
     }
 }
