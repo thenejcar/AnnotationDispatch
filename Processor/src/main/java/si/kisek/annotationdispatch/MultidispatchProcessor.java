@@ -17,6 +17,7 @@ import com.sun.tools.javac.util.Name;
 import si.kisek.annotationdispatch.models.MethodInstance;
 import si.kisek.annotationdispatch.models.MethodModel;
 import si.kisek.annotationdispatch.utils.ReplaceMethodsVisitor;
+import si.kisek.annotationdispatch.utils.Utils;
 
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
@@ -104,5 +105,12 @@ public abstract class MultidispatchProcessor extends AbstractProcessor {
 
         System.out.println("Calls to " + toReplace.getName() + " in " + targetClass.name + " replaced with calls to " + newMethod.getName());
 
+    }
+
+    public void addImports(JCTree.JCClassDecl clazz, List<JCTree> imports) {
+        List<JCTree> defs = new ArrayList<>();
+        defs.addAll(imports);
+        defs.addAll(clazz.defs);
+        clazz.defs = Utils.javacList(defs);
     }
 }

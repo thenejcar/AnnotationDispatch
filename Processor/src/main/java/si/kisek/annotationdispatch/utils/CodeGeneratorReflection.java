@@ -1,9 +1,6 @@
 package si.kisek.annotationdispatch.utils;
 
-import com.sun.tools.javac.code.Flags;
-import com.sun.tools.javac.code.Symtab;
-import com.sun.tools.javac.code.Type;
-import com.sun.tools.javac.code.TypeTag;
+import com.sun.tools.javac.code.*;
 import com.sun.tools.javac.model.JavacElements;
 import com.sun.tools.javac.model.JavacTypes;
 import com.sun.tools.javac.util.Name;
@@ -13,6 +10,7 @@ import si.kisek.annotationdispatch.models.MethodInstance;
 import si.kisek.annotationdispatch.models.MethodModel;
 import si.kisek.annotationdispatch.models.MethodSwitcher;
 
+import javax.lang.model.type.TypeMirror;
 import javax.swing.text.html.HTML;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -27,7 +25,6 @@ public class CodeGeneratorReflection {
     private JavacTypes types;
     private Symtab symtab;
     private Map<MethodModel, Set<MethodInstance>> originalMethods;
-    private List<MethodInstance> sortedInstances;
     private String randomness;
 
 
@@ -44,23 +41,27 @@ public class CodeGeneratorReflection {
         return "methodMap_" + randomness;
     }
 
+    private String initMethodName() {
+        return "init_" + randomness;
+    }
+
     public JCTree.JCVariableDecl generateMethodMapDecl() {
 
-        // Map<String, Map<Integer, List<Method>>> methodMap_xxxx
+        // private static Map<String, Map<Integer, List<Method>>> methodMap_xxxx
         return tm.VarDef(
-                tm.Modifiers(Flags.PRIVATE),
+                tm.Modifiers(Flags.PRIVATE | Flags.STATIC),
                 el.getName(methodMapName()),
                 tm.TypeApply(
-                        tm.Ident(el.getName("java.util.Map")),
+                        tm.Ident(el.getName("Map")),
                         asJavacList(
                                 tm.Ident(el.getName("String")),
                                 tm.TypeApply(
-                                        tm.Ident(el.getName("java.util.Map")),
+                                        tm.Ident(el.getName("Map")),
                                         asJavacList(
                                                 tm.Ident(el.getName("Integer")),
                                                 tm.TypeApply(
-                                                        tm.Ident(el.getName("java.util.List")),
-                                                        javacList(Collections.singletonList(tm.Ident(el.getName("java.lang.reflect.Method"))))
+                                                        tm.Ident(el.getName("List")),
+                                                        javacList(Collections.singletonList(tm.Ident(el.getName("Method"))))
                                                 )
                                         )
                                 )
@@ -72,8 +73,8 @@ public class CodeGeneratorReflection {
 
     public JCTree.JCMethodDecl generateInitMethod() {
         JCTree.JCMethodDecl initMethod = tm.MethodDef(
-                tm.Modifiers(Flags.PRIVATE),
-                el.getName("init_" + randomness),
+                tm.Modifiers(Flags.PRIVATE | Flags.STATIC),
+                el.getName(initMethodName()),
                 null, // TODO: void
                 com.sun.tools.javac.util.List.from(new JCTree.JCTypeParameter[0]),
                 com.sun.tools.javac.util.List.from(new JCTree.JCVariableDecl[0]),  // no arguments
@@ -106,8 +107,8 @@ public class CodeGeneratorReflection {
             JCTree.JCVariableDecl list = tm.VarDef(
                     tm.Modifiers(0),
                     tmpListName,
-                    tm.TypeApply(tm.Ident(el.getName("java.util.List")), asJavacList(tm.Ident(el.getName("java.lang.reflect.Method")))),
-                    tm.NewClass(null, emptyExpr(), tm.Ident(el.getName("java.util.ArrayList")), emptyExpr(), null)
+                    tm.TypeApply(tm.Ident(el.getName("List")), asJavacList(tm.Ident(el.getName("Method")))),
+                    tm.NewClass(null, emptyExpr(), tm.Ident(el.getName("ArrayList")), emptyExpr(), null)
             );
             tryBlock.add(list);
 
@@ -132,13 +133,9 @@ public class CodeGeneratorReflection {
                                 tm.Apply(
                                         emptyExpr(),
                                         tm.Select(
-                                                tm.Apply(
-                                                        emptyExpr(),
-                                                        tm.Select(
-                                                                tm.Ident(el.getName("this")),
-                                                                el.getName("getClass")
-                                                        ),
-                                                        emptyExpr()
+                                                tm.Select(
+                                                        tm.Ident(mm.getParentClass().getSimpleName()),
+                                                        el.getName("class")
                                                 ),
                                                 el.getName("getMethod")
                                         ),
@@ -156,7 +153,7 @@ public class CodeGeneratorReflection {
                     tm.Select(tm.Ident(el.getName(methodMapName())), el.getName("putIfAbsent")),
                     asJavacList(
                             tm.Literal(TypeTag.CLASS, mm.getName().toString()),
-                            tm.NewClass(null, emptyExpr(), tm.Ident(el.getName("java.util.HashMap")), emptyExpr(), null)
+                            tm.NewClass(null, emptyExpr(), tm.Ident(el.getName("HashMap")), emptyExpr(), null)
                     )
             )));
 
@@ -166,12 +163,12 @@ public class CodeGeneratorReflection {
                     tm.Modifiers(0),
                     tmpMapName,
                     tm.TypeApply(
-                            tm.Ident(el.getName("java.util.Map")),
+                            tm.Ident(el.getName("Map")),
                             asJavacList(
                                     tm.Ident(el.getName("Integer")),
                                     tm.TypeApply(
-                                            tm.Ident(el.getName("java.util.List")),
-                                            javacList(Collections.singletonList(tm.Ident(el.getName("java.lang.reflect.Method"))))
+                                            tm.Ident(el.getName("List")),
+                                            javacList(Collections.singletonList(tm.Ident(el.getName("Method"))))
                                     )
                             )
                     ),
@@ -191,7 +188,6 @@ public class CodeGeneratorReflection {
                             tm.Ident(tmpListName)
                     )
             )));
-
 
 
             stats.add(tm.Try(
@@ -220,199 +216,216 @@ public class CodeGeneratorReflection {
     }
 
 
+    /*
+     * Generate a dispatcher for each MethodModel
+     * */
     public Map<MethodModel, JCTree.JCMethodDecl> generateDispatchers() {
-        JCTree.JCVariableDecl[] params = new JCTree.JCVariableDecl[2];
-        params[0] = tm.VarDef(
-                tm.Modifiers(0),
-                el.getName("methodName"),
-                tm.Ident(el.getName("String")),
-                null
-        );
-        params[0] = tm.VarDef(
-                tm.Modifiers(0),
-                el.getName("args"),
-                tm.TypeArray(
-                        tm.Ident(el.getName("Object"))
-                ),
-                null
-        );
-        JCTree.JCMethodDecl dispatcher = tm.MethodDef(
-                tm.Modifiers(Flags.PRIVATE),
-                el.getName("dispatch_" + randomness),
-                null,
-                com.sun.tools.javac.util.List.from(new JCTree.JCTypeParameter[0]),
-                javacList(params),
-                com.sun.tools.javac.util.List.from(new JCTree.JCExpression[0]),    // no exception throwing
-                null,                               // body added later
-                null                           // no default value
-        );
 
-        Name argsToMethod = el.getName("argsToMethod");
+        Map<MethodModel, JCTree.JCMethodDecl> dispatchers = new HashMap<>();
 
-        List<JCTree.JCStatement> stats = new ArrayList<>();
+        for (MethodModel mm : originalMethods.keySet()) {
 
-        // Map<Integer, List<Method>> argsToMethod = methodMap.get(methodName);
-        stats.add(tm.VarDef(
-                tm.Modifiers(0),
-                argsToMethod,
-                tm.TypeApply(
-                        tm.Ident(el.getName("java.util.Map")),
-                        asJavacList(
-                                tm.Ident(el.getName("Integer")),
-                                tm.TypeApply(
-                                        tm.Ident(el.getName("java.util.List")),
-                                        javacList(Collections.singletonList(tm.Ident(el.getName("java.lang.reflect.Method"))))
-                                )
-                        )
-                ),
-                tm.Apply(
-                        emptyExpr(),
-                        tm.Select(tm.Ident(el.getName(methodMapName())), el.getName("get")),
-                        asJavacList(tm.Literal(TypeTag.CLASS, tm.Ident(params[0].getName())))
-                )
-        ));
-/*
-        // throw error if argsToMethod is null. We can skip this, really.
-        stats.add(tm.If(
-                tm.Parens(tm.Binary(JCTree.Tag.EQ, tm.Ident(argsToMethod), tm.Literal(TypeTag.BOT, null))),
-                tm.Block(0, asJavacList(tm.Throw(tm.NewClass(
-                        null,
-                        emptyExpr(),
-                        tm.Ident(el.getName("RuntimeException")),
-                        asJavacList(tm.Literal(TypeTag.CLASS, "argsToMethod map not initialised, internal processor error")),
-                        null
-                )))),
-                null
-        ));
-*/
+            JCTree.JCMethodDecl dispatcher = tm.MethodDef(
+                    mm.getModifiers(),
+                    el.getName("dispatch_" + mm.getRandomness()),
+                    mm.getReturnValue(),
+                    com.sun.tools.javac.util.List.from(new JCTree.JCTypeParameter[0]),
+                    null,
+                    com.sun.tools.javac.util.List.from(new JCTree.JCExpression[0]),    // no exception throwing
+                    null,                               // body added later
+                    null                           // no default value
+            );
 
-        // get list of possible methods
-        // List<Method> candidates = argsToMethod.get(args.length)
-        Name candidates = el.getName("candidates");
-        stats.add(tm.VarDef(
-                tm.Modifiers(0),
-                candidates,
-                tm.TypeApply(tm.Ident(el.getName("java.util.List")), asJavacList(tm.Ident(el.getName("java.lang.reflect.Method")))),
-                tm.Apply(
-                        emptyExpr(),
-                        tm.Select(tm.Ident(argsToMethod), el.getName("get")),
-                        asJavacList(tm.Select(tm.Ident(params[1].name), el.getName("length")))
-                )
-        ));
-
-        // if (candidates == null) throw new RuntimeException("Dispatching parameters failed: " + methodName + numParameters)
-        stats.add(tm.If(
-                tm.Parens(tm.Binary(JCTree.Tag.EQ, tm.Ident(candidates), tm.Literal(TypeTag.BOT, null))),
-                tm.Block(0, asJavacList(tm.Throw(tm.NewClass(
-                        null,
-                        emptyExpr(),
-                        tm.Ident(el.getName("RuntimeException")),
-                        asJavacList(tm.Binary(
-                                JCTree.Tag.PLUS,
-                                tm.Binary(
-                                    JCTree.Tag.PLUS,
-                                    tm.Literal(TypeTag.CLASS, "Dispatching parameters failed: "),
-                                    tm.Ident(params[0].getName())
+            List<JCTree.JCVariableDecl> args = new ArrayList<>();
+            for (int i = 0; i < mm.getNumParameters(); i++) {
+                JCTree.JCVariableDecl arg = tm.Param(
+                        el.getName("arg" + i),
+                        new Type.ClassType(
+                                new Type.JCNoType(),
+                                Utils.javacList(new Type[0]),
+                                el.getTypeElement("Object")
                         ),
-                                tm.Select(tm.Ident(params[1].getName()), el.getName("length"))
-                        )),
-                        null
-                )))),
-                null
-        ));
+                        dispatcher.sym
+                );
 
-        // Method bestMatch = null;
-        Name bestMatch = el.getName("bestMatch");
-        stats.add(tm.VarDef(
-                tm.Modifiers(0),
-                bestMatch,
-                tm.Ident(el.getName("java.lang.reflect.Method")),
-                tm.Literal(TypeTag.BOT, null)
-        ));
+                arg.vartype.type = new Type.ClassType(
+                        new Type.JCNoType(),
+                        javacList(new Type[0]),
+                        el.getTypeElement("Object")
+                );
 
-        // for each candidate, check if we get a match
-        // they are already sorted, so the first match is best match
-        // something like this:
-        // for (Method m : candidates)
-        //     for (int i=0; i<args.length; i++)
-        //         if (m.getParameterTypes()[i].isAssignableFrom(args[i].getClass()))
-        //             bestMatch = m; break;
-        JCTree.JCVariableDecl outerForIterable = tm.VarDef(
-                tm.Modifiers(0),
-                el.getName("m"),
-                tm.Ident(el.getName("java.lang.reflect.Method")),
-                null
-        );
-        JCTree.JCVariableDecl innerForIndex = tm.VarDef(
-                tm.Modifiers(0),
-                el.getName("i"),
-                tm.TypeIdent(TypeTag.INT),
-                tm.Literal(TypeTag.INT, 0)
-        );
+                args.add(arg);
+            }
+            dispatcher.params = javacList(args);
 
-        JCTree.JCIf innermostIf = tm.If(
-                tm.Parens(tm.Apply(
-                        emptyExpr(),
-                        // m.getParameterTypes()[i].isAssignableFrom
-                        tm.Select(
-                                tm.Indexed(
+
+
+            List<JCTree.JCStatement> stats = new ArrayList<>();
+
+
+            // init call if not done yet
+            stats.add(tm.If(
+                    tm.Binary(JCTree.Tag.EQ, tm.Ident(el.getName(methodMapName())), tm.Literal(TypeTag.BOT, null)),
+                    tm.Block(0, asJavacList(tm.Exec(tm.Apply(emptyExpr(), tm.Ident(el.getName(initMethodName())), emptyExpr())))),
+                    null
+            ));
+
+
+            // get list of possible methods
+            // List<Method> candidates = methodMap.get("name").get(numParams
+
+            Name candidates = el.getName("candidates");
+            stats.add(tm.VarDef(
+                    tm.Modifiers(0),
+                    candidates,
+                    tm.TypeApply(tm.Ident(el.getName("List")), asJavacList(tm.Ident(el.getName("Method")))),
+                    tm.Apply(
+                            emptyExpr(),
+                            tm.Select(
                                     tm.Apply(
                                             emptyExpr(),
-                                            tm.Select(tm.Ident(outerForIterable.getName()), el.getName("getParameterTypes")),
-                                            emptyExpr()
+                                            tm.Select(tm.Ident(el.getName(methodMapName())), el.getName("get")),
+                                            asJavacList(tm.Literal(TypeTag.CLASS, tm.Ident(mm.getName())))
                                     ),
-                                    tm.Ident(innerForIndex.getName())
-                                ),
-                                el.getName("isAssignableFrom")
-                        ),
-                        // args[i].getClass
-                        asJavacList(tm.Apply(
-                                emptyExpr(),
-                                tm.Select(
-                                        tm.Indexed(params[1].sym, tm.Ident(innerForIndex.getName())),
-                                        el.getName("getClass")
-                                ),
-                                emptyExpr()
-                        ))
-                )),
-                tm.Block(0, asJavacList(
-                        tm.Exec(tm.Assign(tm.Ident(bestMatch), tm.Ident(outerForIterable))),
-                        tm.Break(null)
-                )),
-                null
-        );
-        stats.add(tm.ForeachLoop(
-                outerForIterable,
-                tm.Ident(candidates),
-                tm.Block(0, asJavacList(
-                        tm.ForLoop(
-                                asJavacList(innerForIndex),
-                                tm.Binary(JCTree.Tag.LT, tm.Ident(innerForIndex.getName()), tm.Select(tm.Ident(params[1].getName()), el.getName("length"))),
-                                asJavacList(tm.Exec(tm.Unary(JCTree.Tag.POSTINC, tm.Ident(innerForIndex.getName())))),
-                                tm.Block(0, asJavacList(innermostIf))
-                        ),
-                        tm.If(
-                                tm.Parens(tm.Binary(JCTree.Tag.NE, tm.Ident(bestMatch), tm.Literal(TypeTag.BOT, null))),
-                                tm.Block(0, asJavacList(tm.Break(null))),
-                                null
-                        )
-                ))
-        ));
+                                    el.getName("get")
+                            ),
+                            asJavacList(tm.Literal(TypeTag.INT, mm.getNumParameters()))
+                    )
+            ));
 
-        // if (bestMatch == null) throw new RuntimeException("no match")
-        stats.add(tm.If(
-                tm.Parens(tm.Binary(JCTree.Tag.EQ, tm.Ident(bestMatch), tm.Literal(TypeTag.BOT, null))),
-                tm.Block(0, asJavacList(tm.Throw(tm.NewClass(
-                        null,
+            // if (candidates == null) throw new RuntimeException("Dispatching parameters failed: " + methodName + numParameters)
+            stats.add(tm.If(
+                    tm.Parens(tm.Binary(JCTree.Tag.EQ, tm.Ident(candidates), tm.Literal(TypeTag.BOT, null))),
+                    tm.Block(0, asJavacList(tm.Throw(tm.NewClass(
+                            null,
+                            emptyExpr(),
+                            tm.Ident(el.getName("RuntimeException")),
+                            asJavacList(tm.Literal(TypeTag.CLASS, "Dispatching parameters failed: " + mm.toString())),
+                            null
+                    )))),
+                    null
+            ));
+
+            // for each candidate, check if we get a match
+            // they are already sorted, so the first match is the correct one
+            // something like this:
+            // for (Method m : candidates)
+            //     if (m.getParameterTypes()[0].isAssignableFrom(arg0.getClass()) &&
+            //         m.getParameterTypes()[1].isAssignableFrom(arg1.getClass()) &&
+            //         m.getParameterTypes()[2].isAssignableFrom(arg2.getClass())) {
+            //         try {
+            //             return bestMatch.invoke(this/null, args);
+            //         } catch (Exception e) {
+            //             e.printStackTrace();
+            //             return null;
+            //         }
+            //     }
+
+            JCTree.JCVariableDecl outerForIterable = tm.VarDef(
+                    tm.Modifiers(0),
+                    el.getName("m"),
+                    tm.Ident(el.getName("Method")),
+                    null
+            );
+
+            //
+            Name exception = el.getName("e");
+
+            List<JCTree.JCExpression> invocation = new ArrayList<>();
+            if ((mm.getModifiers().flags & Flags.STATIC) == Flags.STATIC) {
+                invocation.add(tm.Literal(TypeTag.BOT, null));
+            } else {
+                invocation.add(tm.Ident(el.getName("this")));
+            }
+            invocation.addAll(args.stream().map((arg) -> tm.Ident(arg.getName())).collect(Collectors.toList()));
+
+            stats.add(tm.ForeachLoop(
+                    outerForIterable,
+                    tm.Ident(candidates),
+                    tm.Block(0, asJavacList(
+                            tm.If(
+                                    tm.Parens(generateAssignabilityCheck(outerForIterable, mm.getNumParameters(), args)),
+                                    tm.Block(0, asJavacList(
+                                            tm.Try(
+                                                    tm.Block(0, asJavacList(
+                                                            tm.Return(
+                                                                    tm.Apply(
+                                                                            emptyExpr(),
+                                                                            tm.Select(tm.Ident(outerForIterable.name), el.getName("invoke")),
+                                                                            javacList(invocation)
+                                                                    )
+                                                            )
+                                                    )),
+                                                    asJavacList(tm.Catch(
+                                                            tm.VarDef(tm.Modifiers(0), exception, tm.Ident(el.getName("Exception")), null),
+                                                            tm.Block(0, asJavacList(
+                                                                    tm.Exec(tm.Apply(emptyExpr(), tm.Select(tm.Ident(exception), el.getName("printStackTrace")), emptyExpr())),
+                                                                    tm.Return(
+                                                                            tm.Literal(TypeTag.BOT, null)
+                                                                    )
+                                                            ))
+                                                    )),
+                                                    null
+
+                                            ),
+                                            tm.Break(null)
+                                    )),
+                                    null
+                            )
+                    ))
+            ));
+
+
+            // if there was no match:   throw new RuntimeException("no match")
+            stats.add(tm.Throw(tm.NewClass(
+                    null,
+                    emptyExpr(),
+                    tm.Ident(el.getName("RuntimeException")),
+                    asJavacList(tm.Literal(TypeTag.CLASS, "no matching original method to dispatch the call to")),
+                    null
+            )));
+
+            dispatcher.body = tm.Block(0, javacList(stats));
+            dispatchers.put(mm, dispatcher);
+        }
+
+        return dispatchers;
+    }
+
+    /*
+     * generate a chain of Binary() classes (recursively check that all args match candidate's parameter types)
+     * */
+    private JCTree.JCExpression generateAssignabilityCheck(JCTree.JCVariableDecl candidate, int n, List<JCTree.JCVariableDecl> args) {
+
+        JCTree.JCExpression curr = tm.Apply(
+                emptyExpr(),
+                // m.getParameterTypes()[n-1].isAssignableFrom
+                tm.Select(
+                        tm.Indexed(
+                                tm.Apply(
+                                        emptyExpr(),
+                                        tm.Select(tm.Ident(candidate.getName()), el.getName("getParameterTypes")),
+                                        emptyExpr()
+                                ),
+                                tm.Literal(TypeTag.INT, n - 1)
+                        ),
+                        el.getName("isAssignableFrom")
+                ),
+                // args[i].getClass
+                asJavacList(tm.Apply(
                         emptyExpr(),
-                        tm.Ident(el.getName("RuntimeException")),
-                        asJavacList(tm.Literal(TypeTag.CLASS, "no matching original method to dispatch the call to")),
-                        null
-                )))),                null
-        ));
+                        tm.Select(
+                                tm.Indexed(tm.Ident(args.get(n - 1).name), tm.Literal(TypeTag.INT, n - 1)),
+                                el.getName("getClass")
+                        ),
+                        emptyExpr()
+                ))
+        );
 
-        // TODO: Object[] parameters = new Object[bestMatch.getParameterCount()];
-
-        return null;
+        if (n == 1) {
+            return curr;
+        } else {
+            return tm.Binary(JCTree.Tag.AND, generateAssignabilityCheck(candidate, n - 1, args), curr);
+        }
     }
 }
