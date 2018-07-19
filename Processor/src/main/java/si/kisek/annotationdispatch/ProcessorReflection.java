@@ -50,11 +50,13 @@ public class ProcessorReflection extends MultidispatchProcessor {
         }
 
         Map<JCTree.JCClassDecl, Map<MethodModel, Set<MethodInstance>>> splitMethodModels = new HashMap<>();
+        Map<JCTree.JCClassDecl, JCTree.JCCompilationUnit> elements = new HashMap<>();
         for (MethodModel mm : originalMethods.keySet()) {
             JCTree.JCClassDecl parent = mm.getParentClass();
             Map<MethodModel, Set<MethodInstance>> partialMap = splitMethodModels.getOrDefault(parent, new HashMap<>());
             partialMap.put(mm, new HashSet<>(originalMethods.get(mm)));
             splitMethodModels.put(parent, partialMap);
+            elements.putIfAbsent(parent, (JCTree.JCCompilationUnit) trees.getPath(mm.getParentElement()).getCompilationUnit());
         }
 
         Map<MethodModel, JCTree.JCMethodDecl> generatedMethods = new HashMap<>();
@@ -62,7 +64,7 @@ public class ProcessorReflection extends MultidispatchProcessor {
         // generate dispatching code for each parent class
         for (JCTree.JCClassDecl parent : splitMethodModels.keySet()) {
             Map<MethodModel, Set<MethodInstance>> partialMap = splitMethodModels.get(parent);
-            CodeGeneratorReflection generator = new CodeGeneratorReflection(tm, elements, types, symtab, partialMap);
+            CodeGeneratorReflection generator = new CodeGeneratorReflection(tm, this.elements, types, symtab, partialMap);
 
             JCTree.JCMethodDecl initMethod = generator.generateInitMethod();
             JCTree.JCVariableDecl methodMap = generator.generateMethodMapDecl();
@@ -73,14 +75,16 @@ public class ProcessorReflection extends MultidispatchProcessor {
 //            addInitLogicToClass(parent, initMethod);
 
             // fill the symtables
+            addNewField(parent, methodMap);
             addNewMethod(parent, initMethod);
             dispatchers.values().forEach(dispatcher -> addNewMethod(parent, dispatcher));
-            addNewField(parent, methodMap);
 
-            super.addImports(parent, Arrays.asList(
-                    tm.Import(tm.Select(tm.Select(tm.Ident(elements.getName("java")), elements.getName("util")), elements.getName("*")), false),
-                    tm.Import(tm.Select(tm.Select(tm.Select(tm.Ident(elements.getName("java")), elements.getName("lang")), elements.getName("reflect")), elements.getName("*")), false)
+            super.addImports(elements.get(parent), Arrays.asList(
+                    tm.Import(tm.Select(tm.Select(tm.Ident(this.elements.getName("java")), this.elements.getName("util")), this.elements.getName("*")), false),
+                    tm.Import(tm.Select(tm.Select(tm.Select(tm.Ident(this.elements.getName("java")), this.elements.getName("lang")), this.elements.getName("reflect")), this.elements.getName("*")), false)
             ));
+
+            System.out.println("Inserted new code into " + parent.name.toString());
         }
 
         // replace all calls with calls to the dispatcher

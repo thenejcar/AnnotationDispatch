@@ -14,6 +14,7 @@ import javax.lang.model.type.TypeMirror;
 import javax.swing.text.html.HTML;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static si.kisek.annotationdispatch.utils.Utils.asJavacList;
 import static si.kisek.annotationdispatch.utils.Utils.emptyExpr;
@@ -75,7 +76,7 @@ public class CodeGeneratorReflection {
         JCTree.JCMethodDecl initMethod = tm.MethodDef(
                 tm.Modifiers(Flags.PRIVATE | Flags.STATIC),
                 el.getName(initMethodName()),
-                null, // TODO: void
+                tm.TypeIdent(TypeTag.VOID), // void return type
                 com.sun.tools.javac.util.List.from(new JCTree.JCTypeParameter[0]),
                 com.sun.tools.javac.util.List.from(new JCTree.JCVariableDecl[0]),  // no arguments
                 com.sun.tools.javac.util.List.from(new JCTree.JCExpression[0]),    // no exception throwing
@@ -91,7 +92,24 @@ public class CodeGeneratorReflection {
                 tm.NewClass(
                         null,
                         emptyExpr(),
-                        tm.TypeApply(tm.Ident(el.getName("HashMap")), emptyExpr()),
+                        tm.TypeApply(
+                                tm.Ident(el.getName("HashMap")),
+                                asJavacList(
+                                        tm.Ident(el.getName("String")),
+                                        tm.TypeApply(
+                                                tm.Ident(el.getName("Map")),
+                                                asJavacList(
+                                                        tm.Ident(el.getName("Integer")),
+                                                        tm.TypeApply(
+                                                                tm.Ident(el.getName("List")),
+                                                                asJavacList(
+                                                                        tm.Ident(el.getName("Method"))
+                                                                )
+                                                        )
+                                                )
+                                        )
+                                )
+                        ),
                         emptyExpr(),
                         null
                 )
@@ -102,15 +120,32 @@ public class CodeGeneratorReflection {
 
             List<JCTree.JCStatement> tryBlock = new ArrayList<>();
 
-            Name tmpListName = el.getName("list");
             // create a list of methods
-            JCTree.JCVariableDecl list = tm.VarDef(
+            Name tmpListName = el.getName("list");
+            tryBlock.add(tm.VarDef(
                     tm.Modifiers(0),
                     tmpListName,
                     tm.TypeApply(tm.Ident(el.getName("List")), asJavacList(tm.Ident(el.getName("Method")))),
-                    tm.NewClass(null, emptyExpr(), tm.Ident(el.getName("ArrayList")), emptyExpr(), null)
-            );
-            tryBlock.add(list);
+                    tm.NewClass(
+                            null,
+                            emptyExpr(),
+                            tm.TypeApply(
+                                    tm.Ident(el.getName("ArrayList")),
+                                    asJavacList(tm.Ident(el.getName("Method")))
+                            ),
+                            emptyExpr(),
+                            null
+                    )
+            ));
+
+            // declaredMethod placeholder
+            Name tmpMethodName = el.getName("method");
+            tryBlock.add(tm.VarDef(
+                    tm.Modifiers(0),
+                    tmpMethodName,
+                    tm.Ident(el.getName("Method")),
+                    null
+            ));
 
             List<MethodInstance> sortedInstances = new MethodSwitcher(types, mm, originalMethods.get(mm)).getSortedInstances();
 
@@ -125,23 +160,31 @@ public class CodeGeneratorReflection {
                                 tm.Select(tm.Ident(t.tsym.name), el.getName("class"))
                         ).collect(Collectors.toList())
                 );
+                tryBlock.add(tm.Exec(tm.Assign(
+                        tm.Ident(tmpMethodName),
+                        tm.Apply(
+                                emptyExpr(),
+                                tm.Select(
+                                        tm.Select(
+                                                tm.Ident(mm.getParentClass().getSimpleName()),
+                                                el.getName("class")
+                                        ),
+                                        el.getName("getDeclaredMethod")
+                                ),
+                                javacList(callParameters)
+                        )
+                )));
+
+                tryBlock.add(tm.Exec(tm.Apply(
+                        emptyExpr(),
+                        tm.Select(tm.Ident(tmpMethodName), el.getName("setAccessible")),
+                        asJavacList(tm.Literal(TypeTag.BOOLEAN, 1))
+                )));
 
                 tryBlock.add(tm.Exec(tm.Apply(
                         emptyExpr(),
                         tm.Select(tm.Ident(tmpListName), el.getName("add")),
-                        asJavacList(
-                                tm.Apply(
-                                        emptyExpr(),
-                                        tm.Select(
-                                                tm.Select(
-                                                        tm.Ident(mm.getParentClass().getSimpleName()),
-                                                        el.getName("class")
-                                                ),
-                                                el.getName("getMethod")
-                                        ),
-                                        javacList(callParameters)
-                                )
-                        )
+                        asJavacList(tm.Ident(tmpMethodName))
                 )));
             }
 
@@ -153,7 +196,22 @@ public class CodeGeneratorReflection {
                     tm.Select(tm.Ident(el.getName(methodMapName())), el.getName("putIfAbsent")),
                     asJavacList(
                             tm.Literal(TypeTag.CLASS, mm.getName().toString()),
-                            tm.NewClass(null, emptyExpr(), tm.Ident(el.getName("HashMap")), emptyExpr(), null)
+                            tm.NewClass(
+                                    null,
+                                    emptyExpr(),
+                                    tm.TypeApply(
+                                            tm.Ident(el.getName("HashMap")),
+                                            asJavacList(
+                                                    tm.Ident(el.getName("Integer")),
+                                                    tm.TypeApply(
+                                                            tm.Ident(el.getName("List")),
+                                                            asJavacList(tm.Ident(el.getName("Method")))
+                                                    )
+                                            )
+                                    ),
+                                    emptyExpr(),
+                                    null
+                            )
                     )
             )));
 
@@ -168,7 +226,7 @@ public class CodeGeneratorReflection {
                                     tm.Ident(el.getName("Integer")),
                                     tm.TypeApply(
                                             tm.Ident(el.getName("List")),
-                                            javacList(Collections.singletonList(tm.Ident(el.getName("Method"))))
+                                            asJavacList(tm.Ident(el.getName("Method")))
                                     )
                             )
                     ),
@@ -225,40 +283,8 @@ public class CodeGeneratorReflection {
 
         for (MethodModel mm : originalMethods.keySet()) {
 
-            JCTree.JCMethodDecl dispatcher = tm.MethodDef(
-                    mm.getModifiers(),
-                    el.getName("dispatch_" + mm.getRandomness()),
-                    mm.getReturnValue(),
-                    com.sun.tools.javac.util.List.from(new JCTree.JCTypeParameter[0]),
-                    null,
-                    com.sun.tools.javac.util.List.from(new JCTree.JCExpression[0]),    // no exception throwing
-                    null,                               // body added later
-                    null                           // no default value
-            );
-
-            List<JCTree.JCVariableDecl> args = new ArrayList<>();
-            for (int i = 0; i < mm.getNumParameters(); i++) {
-                JCTree.JCVariableDecl arg = tm.Param(
-                        el.getName("arg" + i),
-                        new Type.ClassType(
-                                new Type.JCNoType(),
-                                Utils.javacList(new Type[0]),
-                                el.getTypeElement("Object")
-                        ),
-                        dispatcher.sym
-                );
-
-                arg.vartype.type = new Type.ClassType(
-                        new Type.JCNoType(),
-                        javacList(new Type[0]),
-                        el.getTypeElement("Object")
-                );
-
-                args.add(arg);
-            }
-            dispatcher.params = javacList(args);
-
-
+            JCTree.JCMethodDecl dispatcher = mm.generateDispatchMethod(tm, el);
+            List<JCTree.JCVariableDecl> args = dispatcher.params;
 
             List<JCTree.JCStatement> stats = new ArrayList<>();
 
@@ -285,7 +311,7 @@ public class CodeGeneratorReflection {
                                     tm.Apply(
                                             emptyExpr(),
                                             tm.Select(tm.Ident(el.getName(methodMapName())), el.getName("get")),
-                                            asJavacList(tm.Literal(TypeTag.CLASS, tm.Ident(mm.getName())))
+                                            asJavacList(tm.Literal(TypeTag.CLASS, mm.getName().toString()))
                                     ),
                                     el.getName("get")
                             ),
@@ -328,16 +354,62 @@ public class CodeGeneratorReflection {
                     null
             );
 
-            //
-            Name exception = el.getName("e");
+            // parameters for invocation: this or null + new Object[] {arg0, arg1, ...}
+            List<JCTree.JCExpression> invParams = new ArrayList<>();
 
-            List<JCTree.JCExpression> invocation = new ArrayList<>();
             if ((mm.getModifiers().flags & Flags.STATIC) == Flags.STATIC) {
-                invocation.add(tm.Literal(TypeTag.BOT, null));
+                invParams.add(tm.Literal(TypeTag.BOT, null));
             } else {
-                invocation.add(tm.Ident(el.getName("this")));
+                invParams.add(tm.Ident(el.getName("this")));
             }
-            invocation.addAll(args.stream().map((arg) -> tm.Ident(arg.getName())).collect(Collectors.toList()));
+//            invParams.add(tm.NewArray(
+//                    tm.Ident(el.getName("Object")),
+//                    emptyExpr(),
+//                    javacList(args.stream().map((arg) -> tm.Ident(arg.getName())).collect(Collectors.toList()))
+//            ));
+            invParams.addAll(args.stream().map((arg) -> tm.Ident(arg.getName())).collect(Collectors.toList()));
+
+            // void methods have different return code
+            // invocation and catchBlock have no Return expression
+            Name exception = el.getName("e");
+            JCTree.JCBlock invocationBlock;
+            JCTree.JCBlock catchBlock;
+
+            if (mm.getReturnValue() instanceof JCTree.JCPrimitiveTypeTree && ((JCTree.JCPrimitiveTypeTree) mm.getReturnValue()).typetag.equals(TypeTag.VOID)) {
+                invocationBlock = tm.Block(0, asJavacList(
+                        tm.Exec(
+                                tm.Apply(
+                                        emptyExpr(),
+                                        tm.Select(tm.Ident(outerForIterable.name), el.getName("invoke")),
+                                        javacList(invParams)
+                                )
+                        ),
+                        tm.Return(null)
+                ));
+                catchBlock = tm.Block(0, asJavacList(
+                        tm.Exec(tm.Apply(emptyExpr(), tm.Select(tm.Ident(exception), el.getName("printStackTrace")), emptyExpr())),
+                        tm.Return(null)
+                ));
+            } else {
+                invocationBlock = tm.Block(0, asJavacList(
+                        tm.Return(
+                                tm.TypeCast(
+                                        mm.getReturnValue(),
+                                        tm.Apply(
+                                                emptyExpr(),
+                                                tm.Select(tm.Ident(outerForIterable.name), el.getName("invoke")),
+                                                javacList(invParams)
+                                        )
+                                )
+                        )
+                ));
+                catchBlock = tm.Block(0, asJavacList(
+                        tm.Exec(tm.Apply(emptyExpr(), tm.Select(tm.Ident(exception), el.getName("printStackTrace")), emptyExpr())),
+                        tm.Return(
+                                tm.Literal(TypeTag.BOT, null)
+                        )
+                ));
+            }
 
             stats.add(tm.ForeachLoop(
                     outerForIterable,
@@ -347,28 +419,14 @@ public class CodeGeneratorReflection {
                                     tm.Parens(generateAssignabilityCheck(outerForIterable, mm.getNumParameters(), args)),
                                     tm.Block(0, asJavacList(
                                             tm.Try(
-                                                    tm.Block(0, asJavacList(
-                                                            tm.Return(
-                                                                    tm.Apply(
-                                                                            emptyExpr(),
-                                                                            tm.Select(tm.Ident(outerForIterable.name), el.getName("invoke")),
-                                                                            javacList(invocation)
-                                                                    )
-                                                            )
-                                                    )),
+                                                    invocationBlock,
                                                     asJavacList(tm.Catch(
                                                             tm.VarDef(tm.Modifiers(0), exception, tm.Ident(el.getName("Exception")), null),
-                                                            tm.Block(0, asJavacList(
-                                                                    tm.Exec(tm.Apply(emptyExpr(), tm.Select(tm.Ident(exception), el.getName("printStackTrace")), emptyExpr())),
-                                                                    tm.Return(
-                                                                            tm.Literal(TypeTag.BOT, null)
-                                                                    )
-                                                            ))
+                                                            catchBlock
                                                     )),
                                                     null
 
-                                            ),
-                                            tm.Break(null)
+                                            )
                                     )),
                                     null
                             )
@@ -376,12 +434,29 @@ public class CodeGeneratorReflection {
             ));
 
 
+            List<JCTree.JCExpression> stringFormatParams = new ArrayList<>();
+            stringFormatParams.add(tm.Literal(
+                    TypeTag.CLASS,
+                    "No matching original method for name '" +
+                            mm.getName().toString() +
+                            "' and parameters " +
+                            String.join(", ", Collections.nCopies(mm.getNumParameters(), "%s"))
+                    )
+            );
+            stringFormatParams.addAll(args.stream().map((arg) ->
+                    tm.Apply(emptyExpr(), tm.Select(tm.Ident(arg.getName()), el.getName("getClass")), emptyExpr())
+            ).collect(Collectors.toList()));
+
             // if there was no match:   throw new RuntimeException("no match")
             stats.add(tm.Throw(tm.NewClass(
                     null,
                     emptyExpr(),
                     tm.Ident(el.getName("RuntimeException")),
-                    asJavacList(tm.Literal(TypeTag.CLASS, "no matching original method to dispatch the call to")),
+                    asJavacList(tm.Apply(
+                            emptyExpr(),
+                            tm.Select(tm.Ident(el.getName("String")), el.getName("format")),
+                            javacList(stringFormatParams)
+                    )),
                     null
             )));
 
@@ -411,11 +486,11 @@ public class CodeGeneratorReflection {
                         ),
                         el.getName("isAssignableFrom")
                 ),
-                // args[i].getClass
+                // arg_i.getClass
                 asJavacList(tm.Apply(
                         emptyExpr(),
                         tm.Select(
-                                tm.Indexed(tm.Ident(args.get(n - 1).name), tm.Literal(TypeTag.INT, n - 1)),
+                                tm.Ident(args.get(n - 1).getName()),
                                 el.getName("getClass")
                         ),
                         emptyExpr()

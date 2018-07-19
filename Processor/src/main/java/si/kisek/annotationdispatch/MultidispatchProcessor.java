@@ -84,8 +84,15 @@ public abstract class MultidispatchProcessor extends AbstractProcessor {
                     parent = parent.getParentPath(); // move up until you hit a class declaration or null
                 }
 
-                MethodModel model = new MethodModel(name, parameterTypes.size(), declaration.restype, declaration.mods,
-                        (JCTree.JCClassDecl) parent.getLeaf(), e, elements.getPackageOf(e).getQualifiedName().toString());
+                MethodModel model = new MethodModel(
+                        name,
+                        parameterTypes.size(),
+                        declaration.restype,
+                        declaration.mods,
+                        (JCTree.JCClassDecl) parent.getLeaf(),
+                        e,
+                        elements.getPackageOf(e).getQualifiedName().toString()
+                );
                 map.putIfAbsent(model, new HashSet<>());
                 map.get(model).add(new MethodInstance(model, parameterTypes));
 
@@ -107,10 +114,10 @@ public abstract class MultidispatchProcessor extends AbstractProcessor {
 
     }
 
-    public void addImports(JCTree.JCClassDecl clazz, List<JCTree> imports) {
+    public void addImports(JCTree.JCCompilationUnit compUnit, List<JCTree> imports) {
         List<JCTree> defs = new ArrayList<>();
         defs.addAll(imports);
-        defs.addAll(clazz.defs);
-        clazz.defs = Utils.javacList(defs);
+        defs.addAll(compUnit.defs);
+        compUnit.defs = Utils.javacList(defs);
     }
 }
