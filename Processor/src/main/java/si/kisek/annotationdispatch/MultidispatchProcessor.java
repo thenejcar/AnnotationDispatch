@@ -17,6 +17,7 @@ import com.sun.tools.javac.util.Name;
 import si.kisek.annotationdispatch.models.MethodInstance;
 import si.kisek.annotationdispatch.models.MethodModel;
 import si.kisek.annotationdispatch.utils.ReplaceMethodsVisitor;
+import si.kisek.annotationdispatch.utils.Utils;
 
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
@@ -83,8 +84,15 @@ public abstract class MultidispatchProcessor extends AbstractProcessor {
                     parent = parent.getParentPath(); // move up until you hit a class declaration or null
                 }
 
-                MethodModel model = new MethodModel(name, parameterTypes.size(), declaration.restype, declaration.mods,
-                        (JCTree.JCClassDecl) parent.getLeaf(), e, elements.getPackageOf(e).getQualifiedName().toString());
+                MethodModel model = new MethodModel(
+                        name,
+                        parameterTypes.size(),
+                        declaration.restype,
+                        declaration.mods,
+                        (JCTree.JCClassDecl) parent.getLeaf(),
+                        e,
+                        elements.getPackageOf(e).getQualifiedName().toString()
+                );
                 map.putIfAbsent(model, new HashSet<>());
                 map.get(model).add(new MethodInstance(model, parameterTypes));
 
@@ -104,5 +112,12 @@ public abstract class MultidispatchProcessor extends AbstractProcessor {
 
         System.out.println("Calls to " + toReplace.getName() + " in " + targetClass.name + " replaced with calls to " + newMethod.getName());
 
+    }
+
+    public void addImports(JCTree.JCCompilationUnit compUnit, List<JCTree> imports) {
+        List<JCTree> defs = new ArrayList<>();
+        defs.addAll(imports);
+        defs.addAll(compUnit.defs);
+        compUnit.defs = Utils.javacList(defs);
     }
 }

@@ -27,6 +27,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.util.*;
 
+import static si.kisek.annotationdispatch.utils.Utils.emptyExpr;
 import static si.kisek.annotationdispatch.utils.Utils.javacList;
 
 
@@ -137,7 +138,7 @@ public class ProcessorVisitor extends MultidispatchProcessor {
                             mm.getReturnValue(),  // return type from original method
                             javacList(new JCTree.JCTypeParameter[0]),  // no type parameters
                             javacList(new JCTree.JCVariableDecl[0]),  // arguments are added below
-                            javacList(new JCTree.JCExpression[0]),  // no exception throwing
+                            emptyExpr(),  // no exception throwing
                             null,  // body is added below
                             null  // no default value
                     );

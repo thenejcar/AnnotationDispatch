@@ -154,4 +154,13 @@ public class MethodModel {
     public boolean isVoid() {
         return returnValue.type.getTag() == TypeTag.VOID;
     }
+
+    public String toString() {
+        return new StringBuilder()
+                .append(modifiers.toString()).append(" ")
+                .append(name).append(", ")
+                .append(numParameters).append(" parameters,")
+                .append(" from ").append(parentClass.getSimpleName())
+                .toString();
+    }
 }
