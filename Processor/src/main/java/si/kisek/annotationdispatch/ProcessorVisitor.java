@@ -5,13 +5,10 @@ import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.code.TypeTag;
 import com.sun.tools.javac.tree.JCTree;
-import com.sun.tools.javac.util.Name;
 import si.kisek.annotationdispatch.models.AcceptMethod;
 import si.kisek.annotationdispatch.models.MethodInstance;
 import si.kisek.annotationdispatch.models.MethodModel;
 import si.kisek.annotationdispatch.utils.CodeGeneratorVisitor;
-import si.kisek.annotationdispatch.utils.ReplaceMethodsVisitor;
-import si.kisek.annotationdispatch.utils.Utils;
 
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
@@ -48,6 +45,7 @@ public class ProcessorVisitor extends MultidispatchProcessor {
     private boolean pass2Complete = false;
 
     private HashMap<MethodModel, HashMap<Type, Set<AcceptMethod>>> acceptMethods;
+    private Set<Type> rootTypes = new HashSet<>();
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
@@ -78,6 +76,8 @@ public class ProcessorVisitor extends MultidispatchProcessor {
 
                 for (Element e : roundEnv.getElementsAnnotatedWith(MultiDispatchClass.class)) {
                     super.replaceMethodsInClass(mm, initMethod, (JCTree.JCClassDecl) trees.getPath(e).getLeaf());
+
+                    System.out.println("MultiDispatchClass " + e.getSimpleName() + " references to " + mm.getName() +" replaced.");
                 }
             }
 
@@ -106,8 +106,6 @@ public class ProcessorVisitor extends MultidispatchProcessor {
 
             HashMap<Type, Set<AcceptMethod>> acceptMethods = new HashMap<>();
 
-            Set<Type> roots = new HashSet<>();
-
             // find roots - types with no visitable superclass
             for (Type t : possibleTypes) {
                 boolean isRoot = true;
@@ -118,14 +116,13 @@ public class ProcessorVisitor extends MultidispatchProcessor {
                     }
                 }
                 if (isRoot)
-                    roots.add(t);
+                    rootTypes.add(t);
 
                 acceptMethods.put(t, new HashSet<>()); // initialise the map
             }
 
-            // generate a Map of all possible accept method
+            // generate a Map of all possible accept method that the Visitable interface will contain
             // acceptMethods maps a type to a set of methods where it is relevant (it will be resolved by them)
-            // Visitable class will implement all the methods with default body
             // each visitable class will implement the relevant methods
             for (MethodInstance mi : originalMethods.get(mm)) {
 
@@ -160,7 +157,7 @@ public class ProcessorVisitor extends MultidispatchProcessor {
                                 new Type.ClassType(
                                         new Type.JCNoType(),
                                         javacList(new Type[0]),
-                                        elements.getTypeElement("java.lang.Object")  // Object is temporary, real type will be filled in the second round
+                                        elements.getTypeElement("java.lang.Object")  // Object is temporary, real type will be filled in the code generator
                                 ),
                                 method.sym
                         ));
@@ -168,8 +165,7 @@ public class ProcessorVisitor extends MultidispatchProcessor {
 
                     // add the new method to the appropriate Set inside the Map
                     Type currType = mi.getParameters().get(i);
-                    boolean isRoot = roots.contains(currType);
-                    acceptMethods.get(currType).add(new AcceptMethod(name, mm, method.sym, i, isRoot, defined, undefined));
+                    acceptMethods.get(currType).add(new AcceptMethod(name, mm, method.sym, i, defined, undefined));
                 }
             }
 
@@ -322,7 +318,11 @@ public class ProcessorVisitor extends MultidispatchProcessor {
         for (Element e : roundEnv.getElementsAnnotatedWith(MultiDispatchVisitable.class)) {
             JCTree.JCClassDecl classDecl = ((JCTree.JCClassDecl) trees.getPath(e).getLeaf());
             // TODO: detect and complain when some accept types are missing the annotation
-            generator.modifyVisitableClass(classDecl); // implement the Visitable interface (add the accept methods)
+
+            // implement the Visitable interface (add the accept methods)
+            generator.modifyVisitableClass(classDecl, rootTypes.contains(classDecl.sym.type));
+
+            System.out.println("Processing of visitable class " + e.getSimpleName() + " done.");
         }
     }
 

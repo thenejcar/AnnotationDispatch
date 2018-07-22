@@ -10,7 +10,9 @@ import si.kisek.annotationdispatch.models.MethodInstance;
 import si.kisek.annotationdispatch.models.MethodModel;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
+import static si.kisek.annotationdispatch.utils.Utils.asJavacList;
 import static si.kisek.annotationdispatch.utils.Utils.emptyExpr;
 import static si.kisek.annotationdispatch.utils.Utils.javacList;
 
@@ -67,10 +69,10 @@ public class CodeGeneratorVisitor {
                     fixedUndefParams.add(tm.Param(
                             param.name,
                             new Type.ClassType(new Type.JCNoType(), javacList(new Type[0]), this.visitableDecl.sym),
-                            param.sym
+                            am.getSym()
                     ));
                 }
-                fixedMethods.add(new AcceptMethod(am.getName(), am.getMethodModel(), am.getSym(), am.getLevel(), am.isRoot(), am.getDefinedParameters(), fixedUndefParams));
+                fixedMethods.add(new AcceptMethod(am.getName(), am.getMethodModel(), am.getSym(), am.getLevel(), am.getDefinedParameters(), fixedUndefParams));
             }
             acceptMethods.put(t, fixedMethods);
         }
@@ -134,6 +136,7 @@ public class CodeGeneratorVisitor {
                 this.visitableDecl.defs = this.visitableDecl.defs.append(methodDecl);
 
                 Symbol.MethodSymbol methodSymbol = createSymbolForMethod(methodDecl, this.visitableDecl.sym);
+
                 Utils.addSymbolToClass(this.visitableDecl, methodSymbol);
                 Utils.addSymbolToClass(mm.getParentClass(), methodSymbol);
                 Utils.addSymbolToClass(this.visitorDecl, methodSymbol);
@@ -295,7 +298,9 @@ public class CodeGeneratorVisitor {
 
             // add to class and register in symtab
             this.visitorDecl.defs = this.visitorDecl.defs.append(methodDecl);
-            Utils.addSymbolToClass(this.visitorDecl, createSymbolForMethod(methodDecl, this.visitorDecl.sym));
+
+            Symbol.MethodSymbol methodSymbol = createSymbolForMethod(methodDecl, this.visitorDecl.sym);
+            Utils.addSymbolToClass(this.visitorDecl, methodSymbol);
         }
 
         System.out.println(visitorDecl.getSimpleName().toString() + " filled with visit methods");
@@ -366,11 +371,11 @@ public class CodeGeneratorVisitor {
     }
 
 
-    public void modifyVisitableClass(JCTree.JCClassDecl classDecl) {
+    public void modifyVisitableClass(JCTree.JCClassDecl classDecl, boolean isRootType) {
 
         if (!this.acceptMethods.containsKey(classDecl.sym.type)) {
-            // class that is not used as a parameter can be left alone TODO: what about root accept Types? - check if it implements this.visitable
-            // it should inherit accepts from parent, or is incompatible anyways
+            // class that is not used as a parameter can be left alone
+            // it should inherit accepts from parent, or is incompatible anyways TODO: what about root accept Types? - check if it implements this.visitable?
             return;
         }
 
@@ -447,7 +452,7 @@ public class CodeGeneratorVisitor {
                         catchBlock.add(tm.Return(superCall));
                     }
 
-                    if (am.isRoot()) {
+                    if (isRootType) {
                         // no try catch -- just call the visit and let the Exception kill the program is needed
                         methodDecl.body = tm.Block(0, javacList(tryBlock));
                     } else {
@@ -461,7 +466,7 @@ public class CodeGeneratorVisitor {
                                                         new Type.JCNoType(),
                                                         javacList(new Type[0]),
                                                         this.exceptionDecl.sym),
-                                                null
+                                                null // TODO: check this owner symbol
                                         ),
                                         tm.Block(0, javacList(catchBlock))
                                 ))),
@@ -470,26 +475,28 @@ public class CodeGeneratorVisitor {
                     }
 
                 } else {
-                    // throw exception when called, since the method is not relevant for this type
+                    if (isRootType) {
+                        // TODO: throw exception if this is root Type (has no visitable supertype), otherwise pass to super
+                        // throw exception when called, since the method is not relevant for this type
 
-                    List<JCTree.JCExpression> exceptionParams = new ArrayList<>();
-                    exceptionParams.add(tm.Literal(mm.getName().toString() + " not dispatched properly"));
-//                    for (JCTree.JCVariableDecl varDecl : am.getDefinedParameters())
-//                        exceptionParams.add(tm.Ident(varDecl.getName()));
-//                    exceptionParams.add(tm.Ident(el.getName("this")));
-//                    for (JCTree.JCVariableDecl varDecl : am.getUndefinedParameters()) {
-//                        exceptionParams.add(tm.Ident(varDecl.getName()));
-//                    }
-
-                    methodDecl.body = tm.Block(0, javacList(Collections.singletonList(
-                            tm.Throw(tm.NewClass(
-                                    null,
-                                    emptyExpr(),
-                                    tm.Ident(this.exceptionDecl.name),
-                                    javacList(exceptionParams),
-                                    null
-                            ))
-                    )));
+                        methodDecl.body = tm.Block(0, javacList(Collections.singletonList(
+                                tm.Throw(
+                                        tm.NewClass(
+                                                null,
+                                                emptyExpr(),
+                                                tm.Ident(this.exceptionDecl.name),
+                                                asJavacList(tm.Literal(mm.getName().toString() + " not dispatched properly")),
+                                                null
+                                        )
+                                )
+                        )));
+                    } else {
+                        methodDecl.body = tm.Block(0, asJavacList(tm.Exec(tm.Apply(
+                                emptyExpr(),
+                                tm.Select(tm.Ident(el.getName("super")), el.getName("accept" + (am.getLevel() + 1))),
+                                javacList(superParameters)
+                        ))));
+                    }
                 }
 
                 // add the method to class and register it in the symbol table
@@ -602,11 +609,17 @@ public class CodeGeneratorVisitor {
 
         Type retType = methodDecl.getReturnType() != null ? methodDecl.getReturnType().type : null;
 
-        return new Symbol.MethodSymbol(
+        Symbol.MethodSymbol symbol =  new Symbol.MethodSymbol(
                 methodDecl.mods.flags,
                 methodDecl.name,
                 new Type.MethodType(javacList(types), retType, javacList(new Type[0]), symtab.methodClass),
                 parentClassSymbol
         );
+
+        // correct the symbols in the method declaration and its parameters
+        methodDecl.sym = symbol;
+        methodDecl.params = javacList(methodDecl.getParameters().stream().map(x -> tm.Param(x.name, x.type, symbol)).collect(Collectors.toList()));
+
+        return symbol;
     }
 }

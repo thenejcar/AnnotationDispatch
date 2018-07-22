@@ -4,11 +4,13 @@ import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.code.TypeTag;
 import com.sun.tools.javac.tree.JCTree;
+import com.sun.tools.javac.tree.TreeMaker;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import static si.kisek.annotationdispatch.utils.Utils.javacList;
 
@@ -20,7 +22,6 @@ public class AcceptMethod {
     private String name; // Name, looks like "12randomness34_accept1"
     private MethodModel mm; // Method that this visitor is dispatching
     private Symbol.MethodSymbol sym; // symbol of the method that will be created from this class
-    private boolean isRoot;
     private int level; // which parameter is being defined with this method
     private List<JCTree.JCVariableDecl> definedParameters; // all parameters before 'level' are already defined
     private List<JCTree.JCVariableDecl> undefinedParameters; // parameters after 'define' use the root type for this MM
@@ -28,12 +29,11 @@ public class AcceptMethod {
     private JCTree.JCMethodDecl methodDecl;
 
 
-    public AcceptMethod(String name, MethodModel mm, Symbol.MethodSymbol sym, int level, boolean isRoot, List<JCTree.JCVariableDecl> definedParameters, List<JCTree.JCVariableDecl> undefinedParameters) {
+    public AcceptMethod(String name, MethodModel mm, Symbol.MethodSymbol sym, int level, List<JCTree.JCVariableDecl> definedParameters, List<JCTree.JCVariableDecl> undefinedParameters) {
         this.name = name;
         this.mm = mm;
         this.sym = sym;
         this.level = level;
-        this.isRoot = isRoot;
         this.definedParameters = definedParameters;
         this.undefinedParameters = undefinedParameters;
     }
@@ -60,10 +60,6 @@ public class AcceptMethod {
 
     public List<JCTree.JCVariableDecl> getUndefinedParameters() {
         return undefinedParameters;
-    }
-
-    public boolean isRoot() {
-        return isRoot;
     }
 
     public JCTree.JCMethodDecl getMethodDecl() {
