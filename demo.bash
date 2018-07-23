@@ -35,6 +35,8 @@ java si.kisek.annotationdispatchdemo.TestClass
 echo "----------------------------------------------------------------------------"
 
 echo
+echo
+echo
 #build the demo program with annotation processing and run it
 
 echo "AnotherClass with double dispatch (visitor):"
@@ -45,13 +47,36 @@ echo "--------------------------------------------------------------------------
 java si.kisek.annotationdispatchdemo.AnotherClass
 echo "----------------------------------------------------------------------------"
 
-#TODO
-#echo "TestClass with multiple dispatch (visitor):"
-#cd ../../
-#mvn -Pannotation-processing-visitor -q clean compile
-#cd ./target/classes
-#echo "----------------------------------------------------------------------------"
-#java si.kisek.annotationdispatchdemo.TestClass
-#echo "----------------------------------------------------------------------------"
+echo
+echo "TestClass with multiple dispatch (visitor):"
+cd ../../
+mvn -Pannotation-processing-visitor -q clean compile
+cd ./target/classes
+echo "----------------------------------------------------------------------------"
+java si.kisek.annotationdispatchdemo.TestClass
+echo "----------------------------------------------------------------------------"
+
+
+echo
+echo
+echo
+#build the demo program with annotation processing and run it
+
+echo "AnotherClass with double dispatch (reflection):"
+cd ../../
+mvn -Pannotation-processing-reflection -q clean compile
+cd ./target/classes
+echo "----------------------------------------------------------------------------"
+java si.kisek.annotationdispatchdemo.AnotherClass
+echo "----------------------------------------------------------------------------"
+
+echo
+echo "TestClass with multiple dispatch (reflection):"
+cd ../../
+mvn -Pannotation-processing-reflection -q clean compile
+cd ./target/classes
+echo "----------------------------------------------------------------------------"
+java si.kisek.annotationdispatchdemo.TestClass
+echo "----------------------------------------------------------------------------"
 
 
