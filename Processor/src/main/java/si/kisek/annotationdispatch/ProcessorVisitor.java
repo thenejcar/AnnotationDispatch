@@ -322,7 +322,7 @@ public class ProcessorVisitor extends MultidispatchProcessor {
             // implement the Visitable interface (add the accept methods)
             generator.modifyVisitableClass(classDecl, rootTypes.contains(classDecl.sym.type));
 
-            System.out.println("Processing of visitable class " + e.getSimpleName() + " done.");
+            //System.out.println("Processing of visitable class " + e.getSimpleName() + " done.");
         }
     }
 

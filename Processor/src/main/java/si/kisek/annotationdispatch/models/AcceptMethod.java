@@ -2,9 +2,7 @@ package si.kisek.annotationdispatch.models;
 
 import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Type;
-import com.sun.tools.javac.code.TypeTag;
 import com.sun.tools.javac.tree.JCTree;
-import com.sun.tools.javac.tree.TreeMaker;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -70,6 +68,10 @@ public class AcceptMethod {
         this.methodDecl = methodDecl;
     }
 
+    public List<String> getParameterString() {
+        return getDefinedParameters().stream().map(String::valueOf).collect(Collectors.toList());
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -78,14 +80,14 @@ public class AcceptMethod {
         return getLevel() == that.getLevel() &&
                 Objects.equals(getName(), that.getName()) &&
                 Objects.equals(getMethodModel(), that.getMethodModel()) &&
-                Objects.equals(getSym(), that.getSym()) &&
-                Objects.equals(getDefinedParameters(), that.getDefinedParameters()) &&
+                Objects.equals(String.valueOf(getSym()), String.valueOf(that.getSym())) &&
+                Objects.equals(getParameterString(), that.getParameterString()) &&
                 Objects.equals(getUndefinedParameters().size(), that.getUndefinedParameters().size());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getName(), getMethodModel(), getSym(), getLevel(), getDefinedParameters(), getUndefinedParameters().size());
+        return Objects.hash(getName(), getMethodModel(), String.valueOf(getSym()), getLevel(), getParameterString(), getUndefinedParameters().size());
     }
 
 

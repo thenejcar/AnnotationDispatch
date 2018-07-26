@@ -491,11 +491,21 @@ public class CodeGeneratorVisitor {
                                 )
                         )));
                     } else {
-                        methodDecl.body = tm.Block(0, asJavacList(tm.Exec(tm.Apply(
-                                emptyExpr(),
-                                tm.Select(tm.Ident(el.getName("super")), el.getName("accept" + (am.getLevel() + 1))),
-                                javacList(superParameters)
-                        ))));
+                        methodDecl.body = tm.Block(0, asJavacList(
+                                mm.isVoid()
+                                        ?
+                                        tm.Exec(tm.Apply(
+                                                emptyExpr(),
+                                                tm.Select(tm.Ident(el.getName("super")), el.getName("accept" + (am.getLevel() + 1))),
+                                                javacList(superParameters)
+                                        ))
+                                        :
+                                        tm.Return(tm.Apply(
+                                                emptyExpr(),
+                                                tm.Select(tm.Ident(el.getName("super")), el.getName("accept" + (am.getLevel() + 1))),
+                                                javacList(superParameters)
+                                        ))
+                        ));
                     }
                 }
 
@@ -520,7 +530,7 @@ public class CodeGeneratorVisitor {
         // also add the parent class of original methods
         Utils.addSymbolToClass(classDecl, mm.getParentClass().sym);
 
-        System.out.println("Visitable class " + classDecl.name + " modified.");
+        //System.out.println("Visitable class " + classDecl.name + " modified.");
     }
 
     public JCTree.JCMethodDecl createVisitorInitMethod() {
@@ -609,7 +619,7 @@ public class CodeGeneratorVisitor {
 
         Type retType = methodDecl.getReturnType() != null ? methodDecl.getReturnType().type : null;
 
-        Symbol.MethodSymbol symbol =  new Symbol.MethodSymbol(
+        Symbol.MethodSymbol symbol = new Symbol.MethodSymbol(
                 methodDecl.mods.flags,
                 methodDecl.name,
                 new Type.MethodType(javacList(types), retType, javacList(new Type[0]), symtab.methodClass),
