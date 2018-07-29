@@ -69,15 +69,18 @@ public class ProcessorVisitor extends MultidispatchProcessor {
             for (MethodModel mm : super.originalMethods.keySet()) {
                 CodeGeneratorVisitor generator = new CodeGeneratorVisitor(super.tm, super.elements, super.types, super.symtab, mm, this.acceptMethods.get(mm), this.originalMethods.get(mm));
                 generator.generateVisitableAndVisitor();
+                processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, generator.getVisitableInterfaceName() + " generated and filled with visit methods");
 
                 modifyVisitableClasses(roundEnv, generator);
 
                 JCTree.JCMethodDecl initMethod = generator.createVisitorInitMethod();
 
                 for (Element e : roundEnv.getElementsAnnotatedWith(MultiDispatchClass.class)) {
-                    super.replaceMethodsInClass(mm, initMethod, (JCTree.JCClassDecl) trees.getPath(e).getLeaf());
-
-                    System.out.println("MultiDispatchClass " + e.getSimpleName() + " references to " + mm.getName() +" replaced.");
+                    JCTree.JCClassDecl classDecl = (JCTree.JCClassDecl) trees.getPath(e).getLeaf();
+                    if (classDecl == mm.getParentClass()) {
+                        super.replaceMethodsInClass(mm, initMethod, classDecl);
+                        processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "MultiDispatchClass " + e.getSimpleName() + " references to " + mm.getName() +" replaced.");
+                    }
                 }
             }
 

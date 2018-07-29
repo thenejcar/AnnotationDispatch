@@ -16,7 +16,7 @@ public class Generator {
     public static String generateTestClass(String className, int nMultimethods, int nInstancesEach, int nCallsEach, int nParameters, int classesDepth, int classesWidth) {
 
         Map<MethodModel, List<MethodInstance>> methodMap = IntStream.range(0, nMultimethods).mapToObj(i ->
-                new MethodModel("method" + i, "public static", nParameters)
+                new MethodModel("m" + "_" + i + "_"+ UUID.randomUUID().toString().replace("-", "").substring(4, 8), "public static", nParameters)
         ).collect(Collectors.toMap(
                 mm -> mm,
                 mm -> generateMethods(mm, nInstancesEach, nCallsEach, classesDepth, classesWidth)
@@ -56,6 +56,7 @@ public class Generator {
                 "\n" +
                 "\n" +
                 "    public static void main(String[] args) {\n" +
+                "        System.out.println(\"Running the main method in generated class " + className + "\");" +
                 "\n" +
                 "        // Parameter objects\n" +
                 String.join("\n", parameterObjectsInit) +
@@ -63,6 +64,7 @@ public class Generator {
                 "        // Test calls\n" +
                 String.join("\n", testCalls) +
                 "\n\n" +
+                "        System.out.println(\"Done\");" +
                 "    }\n" +
                 "\n" +
                 "\n}\n";

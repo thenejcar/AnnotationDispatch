@@ -15,6 +15,7 @@ import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
+import javax.tools.Diagnostic;
 import java.util.*;
 
 import static si.kisek.annotationdispatch.utils.Utils.emptyExpr;
@@ -84,7 +85,7 @@ public class ProcessorReflection extends MultidispatchProcessor {
                     tm.Import(tm.Select(tm.Select(tm.Select(tm.Ident(this.elements.getName("java")), this.elements.getName("lang")), this.elements.getName("reflect")), this.elements.getName("*")), false)
             ));
 
-            System.out.println("Inserted new code into " + parent.name.toString());
+            processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "Inserted new code into " + parent.name.toString());
         }
 
         // replace all calls with calls to the dispatcher
@@ -98,9 +99,11 @@ public class ProcessorReflection extends MultidispatchProcessor {
      * Replace calls to the orignal methods with the calls to generated dispatchers
      * */
     private void replaceMethodCalls(RoundEnvironment roundEnv, Map<MethodModel, JCTree.JCMethodDecl> generatedMethods) {
-        for (MethodModel model : originalMethods.keySet()) {
+        for (MethodModel mm : originalMethods.keySet()) {
             for (Element e : roundEnv.getElementsAnnotatedWith(MultiDispatchClass.class)) {
-                super.replaceMethodsInClass(model, generatedMethods.get(model), (JCTree.JCClassDecl) trees.getPath(e).getLeaf());
+                JCTree.JCClassDecl classDecl = (JCTree.JCClassDecl) trees.getPath(e).getLeaf();
+                if (classDecl == mm.getParentClass())
+                super.replaceMethodsInClass(mm, generatedMethods.get(mm), classDecl);
             }
         }
     }
@@ -146,7 +149,7 @@ public class ProcessorReflection extends MultidispatchProcessor {
         // use reflection to add the generated method symbol to the parent class
         Utils.addSymbolToClass(classDecl, methodSymbol);
 
-        System.out.println("Method " + generatedMethod.name + " added to " + classDecl.name);
+        processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "Method " + generatedMethod.name + " added to " + classDecl.name);
     }
 
     private void addNewField(JCTree.JCClassDecl classDecl, JCTree.JCVariableDecl generatedVar) {
@@ -162,7 +165,7 @@ public class ProcessorReflection extends MultidispatchProcessor {
         // use reflection to add the generated method symbol to the parent class
         Utils.addSymbolToClass(classDecl, varSymbol);
 
-        System.out.println("Variable " + generatedVar.name + " added to " + classDecl.name);
+        processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "Variable " + generatedVar.name + " added to " + classDecl.name);
     }
 
 }

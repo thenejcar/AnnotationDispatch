@@ -62,7 +62,7 @@ public class MethodInstanceTree {
         } else {
             // this is the last parameter, return the one remaining methodInstance instead of a subtree
             if (instances.size() > 1)
-                throw new RuntimeException("Something went wrong, there are multiple methods with same signature");
+                throw new RuntimeException("Something went wrong, there are multiple methods with same signature. Maybe a hash issue? Try again?");
 
             return new Node(parentType, argPos, null, instances.iterator().next());
         }

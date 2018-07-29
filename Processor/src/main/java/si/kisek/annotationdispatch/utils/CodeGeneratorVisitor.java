@@ -54,6 +54,10 @@ public class CodeGeneratorVisitor {
         return methodInstances;
     }
 
+    public String getVisitableInterfaceName() {
+        return visitableDecl.getSimpleName().toString();
+    }
+
     public void generateVisitableAndVisitor() {
         this.visitableDecl = createStaticVisitableInterface();
         this.visitorDecl = createStaticVisitorClass();
@@ -302,8 +306,6 @@ public class CodeGeneratorVisitor {
             Symbol.MethodSymbol methodSymbol = createSymbolForMethod(methodDecl, this.visitorDecl.sym);
             Utils.addSymbolToClass(this.visitorDecl, methodSymbol);
         }
-
-        System.out.println(visitorDecl.getSimpleName().toString() + " filled with visit methods");
     }
 
     /*

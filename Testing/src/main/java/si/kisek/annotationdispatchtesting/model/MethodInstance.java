@@ -68,12 +68,12 @@ public class MethodInstance {
         MethodInstance that = (MethodInstance) o;
         return Objects.equals(getMm(), that.getMm()) &&
                 Objects.equals(getCode(), that.getCode()) &&
-                Objects.equals(getParameters(), that.getParameters());
+                Objects.equals(getParametersHash(), that.getParametersHash());
     }
 
     @Override
     public int hashCode() {
 
-        return Objects.hash(super.hashCode(), getMm(), getCode(), getParameters());
+        return Objects.hash(super.hashCode(), getMm(), getCode(), getParametersHash());
     }
 }

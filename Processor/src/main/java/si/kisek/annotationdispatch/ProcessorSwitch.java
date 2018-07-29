@@ -14,6 +14,7 @@ import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
+import javax.tools.Diagnostic;
 import java.util.*;
 
 import static si.kisek.annotationdispatch.utils.Utils.javacList;
@@ -88,7 +89,7 @@ public class ProcessorSwitch extends MultidispatchProcessor {
 
             generatedMethods.put(model, generatedMethod);
 
-            System.out.println("Method " + generatedMethod.name.toString() + " generated");
+            processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "Method " + generatedMethod.name.toString() + " generated");
 
         }
     }
@@ -96,9 +97,12 @@ public class ProcessorSwitch extends MultidispatchProcessor {
     private void replaceMethodCalls(RoundEnvironment roundEnv) {
         //TODO: check if we really need the class annotation, maybe we can find all places where annotated methods were called?
 
-        for (MethodModel model : originalMethods.keySet()) {
+        for (MethodModel mm : originalMethods.keySet()) {
             for (Element e : roundEnv.getElementsAnnotatedWith(MultiDispatchClass.class)) {
-                super.replaceMethodsInClass(model, generatedMethods.get(model), (JCTree.JCClassDecl) trees.getPath(e).getLeaf());
+                JCTree.JCClassDecl classDecl = (JCTree.JCClassDecl) trees.getPath(e).getLeaf();
+                if (classDecl == mm.getParentClass()) {
+                    super.replaceMethodsInClass(mm, generatedMethods.get(mm), classDecl);
+                }
             }
         }
     }
@@ -129,7 +133,7 @@ public class ProcessorSwitch extends MultidispatchProcessor {
             // use reflection to add the generated method symbol to the parent class
             Utils.addSymbolToClass(classDecl, methodSymbol);
 
-            System.out.println("Method " + generatedMethod.name + " added to " + classDecl.name);
+            processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "Method " + generatedMethod.name + " added to " + classDecl.name);
         }
     }
 }

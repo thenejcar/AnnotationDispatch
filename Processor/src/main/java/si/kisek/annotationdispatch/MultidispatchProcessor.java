@@ -22,6 +22,7 @@ import si.kisek.annotationdispatch.utils.Utils;
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
+import javax.tools.Diagnostic;
 import java.util.*;
 
 
@@ -54,7 +55,7 @@ public abstract class MultidispatchProcessor extends AbstractProcessor {
             types = (JavacTypes) processingEnv.getTypeUtils();
             symtab = Symtab.instance(((JavacProcessingEnvironment) processingEnv).getContext());
         } else {
-            System.out.println("You are not using a javac processing environment, throwing an exception");
+            processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "You are not using a javac processing environment, throwing an exception");
             throw new RuntimeException("Annotation needs to be processed using javac");
         }
     }
@@ -110,7 +111,7 @@ public abstract class MultidispatchProcessor extends AbstractProcessor {
             visitor.visitClassDef(targetClass);
         }
 
-        System.out.println("Calls to " + toReplace.getName() + " in " + targetClass.name + " replaced with calls to " + newMethod.getName());
+        processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "Calls to " + toReplace.getName() + " in " + targetClass.name + " replaced with calls to " + newMethod.getName());
 
     }
 
