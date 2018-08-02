@@ -56,15 +56,18 @@ public class Generator {
                 "\n" +
                 "\n" +
                 "    public static void main(String[] args) {\n" +
-                "        System.out.println(\"Running the main method in generated class " + className + "\");" +
                 "\n" +
                 "        // Parameter objects\n" +
                 String.join("\n", parameterObjectsInit) +
                 "\n\n" +
                 "        // Test calls\n" +
+                "        long t = System.nanoTime();\n" +
+                "        for (int i=0; i<200000; i++) {\n" +
                 String.join("\n", testCalls) +
                 "\n\n" +
-                "        System.out.println(\"Done\");" +
+                "        }\n" +
+                "        t = System.nanoTime() - t;\n" +
+                "        System.out.println(t);\n" +
                 "    }\n" +
                 "\n" +
                 "\n}\n";

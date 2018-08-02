@@ -283,7 +283,7 @@
                                 <annotationProcessor>si.kisek.annotationdispatch.ProcessorVisitor</annotationProcessor>
                             </annotationProcessors>
                             <includes>
-                                <include>Methods*.java</include>
+                                <include>Parameters*.java</include>
                             </includes>
                         </configuration>
                     </plugin>
