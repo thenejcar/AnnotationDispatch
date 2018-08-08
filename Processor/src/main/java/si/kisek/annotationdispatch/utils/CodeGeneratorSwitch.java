@@ -50,13 +50,13 @@ public class CodeGeneratorSwitch {
                 parameters.add(tm.TypeCast(t.tsym.type, tm.Ident(var)));
             }
             //return the method
-            if (parentnode.leaf.getReturnValue() == null || parentnode.leaf.getReturnValue().type.tsym.name.toString().equals("void")) {
+            if (parentnode.leaf.getMm().getReturnValue() == null || parentnode.leaf.getMm().getReturnValue().type.tsym.name.toString().equals("void")) {
                 // for void methods, exec and return without a value
                 List<JCTree.JCStatement> returnBlock = new ArrayList<>();
                 returnBlock.add(tm.Exec(
                         tm.Apply(
                                 emptyExpr(),
-                                tm.Ident(parentnode.leaf.getName()),
+                                tm.Ident(parentnode.leaf.getMm().getName()),
                                 javacList(parameters)
                         )
                 ));
@@ -69,7 +69,7 @@ public class CodeGeneratorSwitch {
                 return tm.Return(
                         tm.Apply(
                                 emptyExpr(),
-                                tm.Ident(parentnode.leaf.getName()),
+                                tm.Ident(parentnode.leaf.getMm().getName()),
                                 javacList(parameters)
                         )
                 );

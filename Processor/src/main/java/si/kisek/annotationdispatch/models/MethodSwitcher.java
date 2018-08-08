@@ -4,6 +4,7 @@ import com.sun.tools.javac.code.Type;
 
 import javax.lang.model.util.Types;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class MethodSwitcher {
 
@@ -52,15 +53,13 @@ public class MethodSwitcher {
 
             // sort possible types using a TypeTree
             TypeTree typeTree = new TypeTree(types);
-            for (Type t : methods.keySet()) {
-                typeTree.addType(t);
-            }
-            List<Type> argTypes = typeTree.flatten();
+            methods.keySet().forEach(typeTree::addType);
 
-            List<SwitcherNode> subtrees = new ArrayList<>();
-            for (Type t : argTypes) {
-                subtrees.add(buildTree(t, argPos + 1, methods.get(t)));
-            }
+            // build a subtree for each
+            List<SwitcherNode> subtrees = typeTree.flatten().stream().map(t ->
+                            buildTree(t, argPos + 1, methods.get(t))
+                    ).collect(Collectors.toList());
+
             return new SwitcherNode(parentType, argPos, subtrees, null);
         } else {
             // this is the last parameter, return the one remaining methodInstance instead of a subtree

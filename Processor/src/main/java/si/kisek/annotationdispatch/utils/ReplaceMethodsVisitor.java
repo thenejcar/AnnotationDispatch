@@ -23,7 +23,7 @@ public class ReplaceMethodsVisitor extends TreeTranslator {
         if (jcMethodInvocation.meth instanceof JCTree.JCIdent) {
             JCTree.JCIdent methodIdent = (JCTree.JCIdent) jcMethodInvocation.meth;
 
-            if (methodIdent.name.equals(targetMethod.getName()) && jcMethodInvocation.args.size() == targetMethod.getParameters().size()) {
+            if (methodIdent.name.equals(targetMethod.getMm().getName()) && jcMethodInvocation.args.size() == targetMethod.getParameters().size()) {
                 methodIdent.name = replacementName; // replace the name with the generated method
             }
         }

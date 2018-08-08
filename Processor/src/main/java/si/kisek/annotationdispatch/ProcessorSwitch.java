@@ -27,8 +27,7 @@ import static si.kisek.annotationdispatch.utils.Utils.javacList;
         "si.kisek.annotationdispatch.ExampleAnnotation",
         "si.kisek.annotationdispatch.MultiDispatch",
         "si.kisek.annotationdispatch.MultiDispatchClass",
-        "si.kisek.annotationdispatch.MultiDispatchVisitable",
-        "si.kisek.annotationdispatch.MultiDispatchVisitableBase"
+        "si.kisek.annotationdispatch.MultiDispatchVisitable"
 })
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 public class ProcessorSwitch extends MultidispatchProcessor {
