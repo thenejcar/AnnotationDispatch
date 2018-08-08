@@ -58,28 +58,7 @@
         </profile>
 
         <profile>
-            <id>test-switch-all</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-compiler-plugin</artifactId>
-                        <version>3.6.2</version>
-                        <configuration>
-                            <!--<verbose>true</verbose>-->
-                            <compilerVersion>1.8</compilerVersion>
-                            <source>1.8</source>
-                            <target>1.8</target>
-                            <annotationProcessors>
-                                <annotationProcessor>si.kisek.annotationdispatch.ProcessorSwitch</annotationProcessor>
-                            </annotationProcessors>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>test-switch-parameters</id>
+            <id>switch</id>
             <build>
                 <plugins>
                     <plugin>
@@ -95,55 +74,7 @@
                                 <annotationProcessor>si.kisek.annotationdispatch.ProcessorSwitch</annotationProcessor>
                             </annotationProcessors>
                             <includes>
-                                <include>Parameters*.java</include>
-                            </includes>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>test-switch-classes</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-compiler-plugin</artifactId>
-                        <version>3.6.2</version>
-                        <configuration>
-                            <!--<verbose>true</verbose>-->
-                            <compilerVersion>1.8</compilerVersion>
-                            <source>1.8</source>
-                            <target>1.8</target>
-                            <annotationProcessors>
-                                <annotationProcessor>si.kisek.annotationdispatch.ProcessorSwitch</annotationProcessor>
-                            </annotationProcessors>
-                            <includes>
-                                <include>Classes*.java</include>
-                            </includes>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>test-switch-methods</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-compiler-plugin</artifactId>
-                        <version>3.6.2</version>
-                        <configuration>
-                            <!--<verbose>true</verbose>-->
-                            <compilerVersion>1.8</compilerVersion>
-                            <source>1.8</source>
-                            <target>1.8</target>
-                            <annotationProcessors>
-                                <annotationProcessor>si.kisek.annotationdispatch.ProcessorSwitch</annotationProcessor>
-                            </annotationProcessors>
-                            <includes>
-                                <include>Methods*.java</include>
+                                <include>${include}</include>
                             </includes>
                         </configuration>
                     </plugin>
@@ -152,28 +83,7 @@
         </profile>
 
         <profile>
-            <id>test-reflection-all</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-compiler-plugin</artifactId>
-                        <version>3.6.2</version>
-                        <configuration>
-                            <!--<verbose>true</verbose>-->
-                            <compilerVersion>1.8</compilerVersion>
-                            <source>1.8</source>
-                            <target>1.8</target>
-                            <annotationProcessors>
-                                <annotationProcessor>si.kisek.annotationdispatch.ProcessorReflection</annotationProcessor>
-                            </annotationProcessors>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>test-reflection-parameters</id>
+            <id>reflection</id>
             <build>
                 <plugins>
                     <plugin>
@@ -189,55 +99,7 @@
                                 <annotationProcessor>si.kisek.annotationdispatch.ProcessorReflection</annotationProcessor>
                             </annotationProcessors>
                             <includes>
-                                <include>Parameters*.java</include>
-                            </includes>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>test-reflection-classes</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-compiler-plugin</artifactId>
-                        <version>3.6.2</version>
-                        <configuration>
-                            <!--<verbose>true</verbose>-->
-                            <compilerVersion>1.8</compilerVersion>
-                            <source>1.8</source>
-                            <target>1.8</target>
-                            <annotationProcessors>
-                                <annotationProcessor>si.kisek.annotationdispatch.ProcessorReflection</annotationProcessor>
-                            </annotationProcessors>
-                            <includes>
-                                <include>Classes*.java</include>
-                            </includes>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>test-reflection-methods</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-compiler-plugin</artifactId>
-                        <version>3.6.2</version>
-                        <configuration>
-                            <!--<verbose>true</verbose>-->
-                            <compilerVersion>1.8</compilerVersion>
-                            <source>1.8</source>
-                            <target>1.8</target>
-                            <annotationProcessors>
-                                <annotationProcessor>si.kisek.annotationdispatch.ProcessorReflection</annotationProcessor>
-                            </annotationProcessors>
-                            <includes>
-                                <include>Methods*.java</include>
+                                <include>${include}</include>
                             </includes>
                         </configuration>
                     </plugin>
@@ -246,28 +108,7 @@
         </profile>
 
         <profile>
-            <id>test-visitor-all</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-compiler-plugin</artifactId>
-                        <version>3.6.2</version>
-                        <configuration>
-                            <!--<verbose>true</verbose>-->
-                            <compilerVersion>1.8</compilerVersion>
-                            <source>1.8</source>
-                            <target>1.8</target>
-                            <annotationProcessors>
-                                <annotationProcessor>si.kisek.annotationdispatch.ProcessorVisitor</annotationProcessor>
-                            </annotationProcessors>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>test-visitor-parameters</id>
+            <id>visitor</id>
             <build>
                 <plugins>
                     <plugin>
@@ -283,55 +124,7 @@
                                 <annotationProcessor>si.kisek.annotationdispatch.ProcessorVisitor</annotationProcessor>
                             </annotationProcessors>
                             <includes>
-                                <include>Parameters*.java</include>
-                            </includes>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>test-visitor-classes</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-compiler-plugin</artifactId>
-                        <version>3.6.2</version>
-                        <configuration>
-                            <!--<verbose>true</verbose>-->
-                            <compilerVersion>1.8</compilerVersion>
-                            <source>1.8</source>
-                            <target>1.8</target>
-                            <annotationProcessors>
-                                <annotationProcessor>si.kisek.annotationdispatch.ProcessorVisitor</annotationProcessor>
-                            </annotationProcessors>
-                            <includes>
-                                <include>Classes*.java</include>
-                            </includes>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>test-visitor-methods</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-compiler-plugin</artifactId>
-                        <version>3.6.2</version>
-                        <configuration>
-                            <!--<verbose>true</verbose>-->
-                            <compilerVersion>1.8</compilerVersion>
-                            <source>1.8</source>
-                            <target>1.8</target>
-                            <annotationProcessors>
-                                <annotationProcessor>si.kisek.annotationdispatch.ProcessorVisitor</annotationProcessor>
-                            </annotationProcessors>
-                            <includes>
-                                <include>Methods*.java</include>
+                                <include>${include}</include>
                             </includes>
                         </configuration>
                     </plugin>
