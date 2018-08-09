@@ -92,9 +92,9 @@ public class AcceptMethod {
 
 
     /*
-    * Replaces the placeholder java.lang.Object with actual type of the Visitable interface
-    * this has to be done AFTER visitable is added to the symtables and before accept methods are generated
-    * */
+     * Replaces the placeholder java.lang.Object with actual type of the Visitable interface
+     * this has to be done AFTER visitable is added to the symtables and before accept methods are generated
+     * */
     public void fixUndefinedParameterTypes(Symbol.TypeSymbol visitableTypeSymbol) {
         List<JCTree.JCVariableDecl> fixedParameters = new ArrayList<>();
         for (JCTree.JCVariableDecl param : undefinedParameters) {
@@ -106,87 +106,5 @@ public class AcceptMethod {
             fixedParameters.add(param);
         }
         this.undefinedParameters = fixedParameters;
-    }
-
-    /*
-     * Emits the default code for this accept method (the one the throws an exception)
-     * */
-    @Deprecated
-    public String emitInterfaceAcceptCode() {
-        StringBuilder sb = new StringBuilder("public ").append(mm.getReturnValue()).append(" accept")
-                .append(definedParameters.size() + 1)
-                .append("(")
-                .append(mm.getVisitorName()).append(" v");
-
-        if (definedParameters.size() > 0 || undefinedParameters.size() > 0)
-            sb.append(", ");
-
-        ListIterator<JCTree.JCVariableDecl> defIter = definedParameters.listIterator();
-        while (defIter.hasNext()) {
-            JCTree.JCVariableDecl decl = defIter.next();
-            sb.append(decl.type.tsym.name.toString()).append(" ").append(decl.name);
-            if (defIter.hasNext() || undefinedParameters.size() > 0) {
-                sb.append(", ");
-            }
-        }
-
-        ListIterator<JCTree.JCVariableDecl> undefIter = undefinedParameters.listIterator();
-        while (undefIter.hasNext()) {
-            JCTree.JCVariableDecl decl = undefIter.next();
-            sb.append(mm.getVisitableName()).append(" ").append(decl.name);
-            if (undefIter.hasNext()) {
-                sb.append(", ");
-            }
-        }
-        sb.append(");");
-
-        return sb.toString();
-    }
-
-    @Deprecated
-    public String emitVisitorCode() {
-
-        StringBuilder sb = new StringBuilder()
-                .append("public ").append(mm.getReturnValue()).append(" visit").append(this.level)
-                .append("(");
-
-        StringBuilder acceptCall = new StringBuilder();
-
-        ListIterator<JCTree.JCVariableDecl> defIter = definedParameters.listIterator();
-        while (defIter.hasNext()) {
-            JCTree.JCVariableDecl decl = defIter.next();
-            sb.append(decl.type.tsym.name.toString()).append(" ").append(decl.name);
-            acceptCall.append(decl.name);
-            if (defIter.hasNext() || undefinedParameters.size() > 0) {
-                acceptCall.append(", ");
-            }
-            sb.append(", ");
-        }
-        sb.append(mm.getVisitableName()).append(" o").append(this.level);
-        if (undefinedParameters.size() > 0)
-            sb.append(", ");
-
-        ListIterator<JCTree.JCVariableDecl> undefIter = undefinedParameters.listIterator();
-        while (undefIter.hasNext()) {
-            JCTree.JCVariableDecl decl = undefIter.next();
-            sb.append(mm.getVisitableName()).append(" ").append(decl.name);
-            acceptCall.append(decl.name);
-            if (undefIter.hasNext()) {
-                sb.append(", ");
-                acceptCall.append(", ");
-            }
-        }
-
-        sb.append("){ ");
-        if (!mm.isVoid()) {
-            sb.append("return ");
-        }
-        sb.append("o").append(this.level)
-                .append(".accept").append(this.level + 1).append("(this, ").append(acceptCall.toString())
-                .append("); }");
-
-
-        return sb.toString();
-
     }
 }

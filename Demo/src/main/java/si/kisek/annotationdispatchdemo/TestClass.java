@@ -138,4 +138,9 @@ public class TestClass {
             return "a tree";
         }
     }
+
+
+    private static boolean giveMeTrue() {
+        return true;
+    }
 }

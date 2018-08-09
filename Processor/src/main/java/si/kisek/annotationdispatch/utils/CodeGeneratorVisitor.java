@@ -192,10 +192,10 @@ public class CodeGeneratorVisitor {
                 JCTree.JCMethodDecl methodDecl = tm.MethodDef(
                         tm.Modifiers(Flags.PUBLIC),
                         el.getName("visit" + am.getLevel()),
-                        mm.getReturnValue(),
-                        com.sun.tools.javac.util.List.from(new JCTree.JCTypeParameter[0]),
-                        com.sun.tools.javac.util.List.from(new JCTree.JCVariableDecl[0]),  // arguments are added later
-                        com.sun.tools.javac.util.List.from(new JCTree.JCExpression[0]),    // no exception throwing
+                        mm.isVoid() ? tm.TypeIdent(TypeTag.BOOLEAN) : mm.getReturnValue(),
+                        javacList(new JCTree.JCTypeParameter[0]),
+                        javacList(new JCTree.JCVariableDecl[0]),  // arguments are added later
+                        emptyExpr(),    // no exception throwing
                         null,                               // body is added below
                         null                           // no default value
                 );
@@ -235,14 +235,7 @@ public class CodeGeneratorVisitor {
                         javacList(callParameters)
                 );
 
-
-                List<JCTree.JCStatement> returnBlock = new ArrayList<>();
-                if (mm.isVoid()) {
-                    returnBlock.add(tm.Exec(call));
-                } else {
-                    returnBlock.add(tm.Return(call));
-                }
-                methodDecl.body = tm.Block(0, javacList(returnBlock));
+                methodDecl.body = tm.Block(0, asJavacList(tm.Return(call))); // we return the result (for void types this will be boolean)
 
                 Symbol.MethodSymbol methodSymbol = createSymbolForMethod(methodDecl, this.visitorDecl.sym);
 
@@ -257,10 +250,10 @@ public class CodeGeneratorVisitor {
             JCTree.JCMethodDecl methodDecl = tm.MethodDef(
                     tm.Modifiers(Flags.PUBLIC),
                     el.getName("visit" + mi.getNumParameters()),
-                    mm.getReturnValue(),
-                    com.sun.tools.javac.util.List.from(new JCTree.JCTypeParameter[0]),
-                    com.sun.tools.javac.util.List.from(new JCTree.JCVariableDecl[0]),  // arguments are added later
-                    com.sun.tools.javac.util.List.from(new JCTree.JCExpression[0]),    // no exception throwing
+                    mm.isVoid() ? tm.TypeIdent(TypeTag.BOOLEAN) : mm.getReturnValue(),
+                    javacList(new JCTree.JCTypeParameter[0]),
+                    javacList(new JCTree.JCVariableDecl[0]),  // arguments are added later
+                    emptyExpr(),    // no exception throwing
                     null,                               // body is added below
                     null                           // no default value
             );
@@ -295,6 +288,7 @@ public class CodeGeneratorVisitor {
             List<JCTree.JCStatement> returnBlock = new ArrayList<>();
             if (mm.isVoid()) {
                 returnBlock.add(tm.Exec(call));
+                returnBlock.add(tm.Return(tm.Literal(TypeTag.BOOLEAN, 1)));
             } else {
                 returnBlock.add(tm.Return(call));
             }
@@ -443,70 +437,79 @@ public class CodeGeneratorVisitor {
                             javacList(superParameters)
                     );
 
-
-                    List<JCTree.JCStatement> tryBlock = new ArrayList<>();
-                    List<JCTree.JCStatement> catchBlock = new ArrayList<>();
                     if (mm.isVoid()) {
-                        tryBlock.add(tm.Exec(visitCall));
-                        catchBlock.add(tm.Exec(superCall));
+                        // void type will return false was a dispatching miss
+                        // if ( visit() ) { return true; } else { return super.accept(); }
+                        methodDecl.body = tm.Block(0, asJavacList(
+                                tm.If(
+                                        visitCall,
+                                        tm.Block(0, asJavacList(tm.Return(tm.Literal(TypeTag.BOOLEAN, 1)))),
+                                        tm.Block(0, asJavacList(
+                                                isRootType ? tm.Return(tm.Literal(TypeTag.BOOLEAN, 0)) : tm.Return(superCall)
+                                        ))
+                                )
+                        ));
+
                     } else {
+                        List<JCTree.JCStatement> tryBlock = new ArrayList<>();
+                        List<JCTree.JCStatement> catchBlock = new ArrayList<>();
+
                         tryBlock.add(tm.Return(visitCall));
                         catchBlock.add(tm.Return(superCall));
-                    }
 
-                    if (isRootType) {
-                        // no try catch -- just call the visit and let the Exception kill the program is needed
-                        methodDecl.body = tm.Block(0, javacList(tryBlock));
-                    } else {
-                        // try catch -- catch the DispatchException and call super.accept
-                        methodDecl.body = tm.Block(0, javacList(Collections.singletonList(tm.Try(
-                                tm.Block(0, javacList(tryBlock)),
-                                javacList(Collections.singletonList(tm.Catch(
-                                        tm.Param(
-                                                el.getName("de"),
-                                                new Type.ClassType(
-                                                        new Type.JCNoType(),
-                                                        javacList(new Type[0]),
-                                                        this.exceptionDecl.sym),
-                                                null // TODO: check this owner symbol
-                                        ),
-                                        tm.Block(0, javacList(catchBlock))
-                                ))),
-                                null)
-                        )));
+                        if (isRootType) {
+                            // no try catch -- just call the visit and let the Exception kill the program if needed
+                            methodDecl.body = tm.Block(0, javacList(tryBlock));
+                        } else {
+                            // try catch -- catch the DispatchException and call super.accept
+                            methodDecl.body = tm.Block(0, javacList(Collections.singletonList(tm.Try(
+                                    tm.Block(0, javacList(tryBlock)),
+                                    javacList(Collections.singletonList(tm.Catch(
+                                            tm.Param(
+                                                    el.getName("de"),
+                                                    new Type.ClassType(
+                                                            new Type.JCNoType(),
+                                                            javacList(new Type[0]),
+                                                            this.exceptionDecl.sym),
+                                                    null // TODO: check this owner symbol
+                                            ),
+                                            tm.Block(0, javacList(catchBlock))
+                                    ))),
+                                    null)
+                            )));
+                        }
                     }
 
                 } else {
+                    // throw exception if this is root Type (has no visitable supertype), otherwise pass to super
                     if (isRootType) {
-                        // TODO: throw exception if this is root Type (has no visitable supertype), otherwise pass to super
-                        // throw exception when called, since the method is not relevant for this type
+                        // throw exception/false when called, since the method is not relevant for this type
 
-                        methodDecl.body = tm.Block(0, javacList(Collections.singletonList(
-                                tm.Throw(
-                                        tm.NewClass(
-                                                null,
-                                                emptyExpr(),
-                                                tm.Ident(this.exceptionDecl.name),
-                                                asJavacList(tm.Literal(mm.getName().toString() + " not dispatched properly")),
-                                                null
-                                        )
-                                )
-                        )));
+                        if (mm.isVoid()) {
+                            methodDecl.body = tm.Block(0, asJavacList(
+                                    tm.Return(tm.Literal(TypeTag.BOOLEAN, 0))
+                            ));
+                        } else {
+                            methodDecl.body = tm.Block(0, asJavacList(
+                                    tm.Throw(
+                                            tm.NewClass(
+                                                    null,
+                                                    emptyExpr(),
+                                                    tm.Ident(this.exceptionDecl.name),
+                                                    asJavacList(tm.Literal(mm.getName().toString() + " not dispatched properly")),
+                                                    null
+                                            )
+                                    )
+                            ));
+                        }
+
                     } else {
                         methodDecl.body = tm.Block(0, asJavacList(
-                                mm.isVoid()
-                                        ?
-                                        tm.Exec(tm.Apply(
-                                                emptyExpr(),
-                                                tm.Select(tm.Ident(el.getName("super")), el.getName("accept" + (am.getLevel() + 1))),
-                                                javacList(superParameters)
-                                        ))
-                                        :
-                                        tm.Return(tm.Apply(
-                                                emptyExpr(),
-                                                tm.Select(tm.Ident(el.getName("super")), el.getName("accept" + (am.getLevel() + 1))),
-                                                javacList(superParameters)
-                                        ))
+                                tm.Return(tm.Apply(
+                                        emptyExpr(),
+                                        tm.Select(tm.Ident(el.getName("super")), el.getName("accept" + (am.getLevel() + 1))),
+                                        javacList(superParameters)
+                                ))
                         ));
                     }
                 }
@@ -578,9 +581,9 @@ public class CodeGeneratorVisitor {
         );
 
         if (mm.isVoid())
-            methodDecl.body = tm.Block(0, javacList(Collections.singletonList(tm.Exec(acceptCall))));
+            methodDecl.body = tm.Block(0, asJavacList(tm.Exec(acceptCall)));
         else
-            methodDecl.body = tm.Block(0, javacList(Collections.singletonList(tm.Return(acceptCall))));
+            methodDecl.body = tm.Block(0, asJavacList(tm.Return(acceptCall)));
 
         mm.getParentClass().defs = mm.getParentClass().defs.append(methodDecl);
         Utils.addSymbolToClass(mm.getParentClass(), createSymbolForMethod(methodDecl, mm.getParentClass().sym));
@@ -595,7 +598,7 @@ public class CodeGeneratorVisitor {
         return tm.MethodDef(
                 tm.Modifiers(Flags.PUBLIC),
                 el.getName(am.getName()),
-                mm.getReturnValue(),
+                mm.isVoid() ? tm.TypeIdent(TypeTag.BOOLEAN) : mm.getReturnValue(),
                 com.sun.tools.javac.util.List.from(new JCTree.JCTypeParameter[0]),
                 com.sun.tools.javac.util.List.from(new JCTree.JCVariableDecl[0]),  // arguments are added later
                 com.sun.tools.javac.util.List.from(new JCTree.JCExpression[0]),    // no exception throwing
