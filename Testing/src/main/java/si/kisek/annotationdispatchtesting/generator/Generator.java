@@ -13,10 +13,10 @@ import java.util.stream.Stream;
  * */
 public class Generator {
 
-    public static String generateTestClass(String className, int nMultimethods, int nInstancesEach, int nCallsEach, int nParameters, int classesDepth, int classesWidth) {
+    public static String generateTestClass(String className, int nMultimethods, int nInstancesEach, int nCallsEach, int nParameters, int classesDepth, int classesWidth, boolean isVoid) {
 
         Map<MethodModel, List<MethodInstance>> methodMap = IntStream.range(0, nMultimethods).mapToObj(i ->
-                new MethodModel("m" + "_" + i + "_"+ UUID.randomUUID().toString().replace("-", "").substring(4, 8), "public static", nParameters)
+                new MethodModel("m" + "_" + i + "_" + UUID.randomUUID().toString().replace("-", "").substring(4, 8), "public static", nParameters, isVoid)
         ).collect(Collectors.toMap(
                 mm -> mm,
                 mm -> generateMethods(mm, nInstancesEach, nCallsEach, classesDepth, classesWidth)
@@ -54,6 +54,7 @@ public class Generator {
                 String.join("\n", methodDefinitions) +
                 "\n" +
                 "\n" +
+                "    public static String globalString = \"default\";\n" +
                 "\n" +
                 "    public static void main(String[] args) {\n" +
                 "\n" +
@@ -129,11 +130,11 @@ public class Generator {
                     String objectName = gc.getName().toLowerCase();
                     mm.addObject(gc, objectName, gc.getRoot().getName() + " " + objectName + " = new " + gc.getName() + "();");
                 });
-        exampleCalls.keySet().forEach(mi ->
-                exampleCalls.get(mi).forEach(exampleCall ->
-                        mi.addExampleCall(emitCode(mm.getObjects(), mi, exampleCall))
-                )
-        );
+        for (MethodInstance mi : exampleCalls.keySet()) {
+            for (List<GeneratedClass> exampleCall : exampleCalls.get(mi)) {
+                mi.addExampleCall(emitCode(mm.getObjects(), mi, exampleCall));
+            }
+        }
 
         return sortedMethods;
     }
@@ -148,18 +149,27 @@ public class Generator {
 
         String parametersHash = String.valueOf(Objects.hash(params));
 
-        String code = mm.getModifiers() + " String " + mm.getName() + "(" + String.join(", ", parameters) + ") {" +
-                "    return \"" + parametersHash + "\";" +
-                "}";
+        String code = mm.getModifiers() + (mm.isVoid() ? " void " : " String ") + mm.getName() + "(" + String.join(", ", parameters) + ") {" +
+                (mm.isVoid() ?
+                        "    globalString = \"" + parametersHash + "\";" // assign to globalString parameter
+                        :
+                        "    return \"" + parametersHash + "\";" // return string literal
+                ) + "}";
 
-        return new MethodInstance(mm, code, params, parametersHash);
+        return new MethodInstance(mm, code, params, parametersHash, mm.isVoid());
     }
 
     private static String emitCode(HashMap<GeneratedClass, String> objects, MethodInstance method, List<GeneratedClass> exampleCall) {
-        return "if (!" +
-                method.getMm().getName() + "(" + String.join(", ", exampleCall.stream().map(objects::get).collect(Collectors.toList())) + ")" +
-                ".equals(\"" + method.getParametersHash() + "\"))" +
-                " System.out.println(\"Bad dispatch in call to " + method.getMm().getName() + " / " + String.join(", ", exampleCall.stream().map(Object::toString).collect(Collectors.toList())) + "\");";
+        if (method.isVoid()) {
+            return method.getMm().getName() + "(" + String.join(", ", exampleCall.stream().map(objects::get).collect(Collectors.toList())) + ");\n" +
+                    "        if (!globalString.equals(\"" + method.getParametersHash() + "\"))" +
+                    " System.out.println(\"Bad dispatch in call to " + method.getMm().getName() + " / " + String.join(", ", exampleCall.stream().map(Object::toString).collect(Collectors.toList())) + "\");";
+        } else {
+            return "if (!" +
+                    method.getMm().getName() + "(" + String.join(", ", exampleCall.stream().map(objects::get).collect(Collectors.toList())) + ")" +
+                    ".equals(\"" + method.getParametersHash() + "\"))" +
+                    " System.out.println(\"Bad dispatch in call to " + method.getMm().getName() + " / " + String.join(", ", exampleCall.stream().map(Object::toString).collect(Collectors.toList())) + "\");";
+        }
     }
 
 

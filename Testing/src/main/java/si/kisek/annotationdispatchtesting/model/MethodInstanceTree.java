@@ -61,9 +61,12 @@ public class MethodInstanceTree {
             return new Node(parentType, argPos, subtrees, null);
         } else {
             // this is the last parameter, return the one remaining methodInstance instead of a subtree
-            if (instances.size() > 1)
-                throw new RuntimeException("Something went wrong, there are multiple methods with same signature. Maybe a hash issue? Try again?");
-
+            if (instances.size() > 1) {
+                MethodInstance firstInstance = instances.iterator().next();
+                if (instances.stream().anyMatch(mi -> !mi.getParametersHash().equals(firstInstance.getParametersHash()))) {
+                    throw new RuntimeException("Something went wrong, there are multiple methods with same hash. Try again?");
+                }
+            }
             return new Node(parentType, argPos, null, instances.iterator().next());
         }
     }

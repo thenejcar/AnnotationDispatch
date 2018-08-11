@@ -9,14 +9,16 @@ public class MethodInstance {
     private String code;
     private List<GeneratedClass> parameters;
     private String parametersHash;
+    private boolean isVoid;
 
     private List<String> exampleCalls;
 
-    public MethodInstance(MethodModel mm, String code, List<GeneratedClass> parameters, String parametersHash) {
+    public MethodInstance(MethodModel mm, String code, List<GeneratedClass> parameters, String parametersHash, boolean isVoid) {
         this.mm = mm;
         this.code = code;
         this.parameters = parameters;
         this.parametersHash = parametersHash;
+        this.isVoid = isVoid;
         this.exampleCalls = new ArrayList<>();
     }
 
@@ -58,6 +60,10 @@ public class MethodInstance {
 
     public List<String> getExampleCalls() {
         return exampleCalls;
+    }
+
+    public boolean isVoid() {
+        return isVoid;
     }
 
     @Override

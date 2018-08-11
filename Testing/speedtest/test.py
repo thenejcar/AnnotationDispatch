@@ -6,18 +6,20 @@ import time
 from matplotlib import pyplot as plt
 from matplotlib import patches as mpatches
 
-def average_ms(lst):
-    return sum(lst) / len(lst) / 1e6
+def average(lst):
+    return sum(lst) / len(lst)
 
 
 class Tester:
-    def __init__(self, repeats, processors):
-        self.repeats = repeats
-        # processors = ["switch", "reflection", "visitor"]
+    def __init__(self, rounds, compile_rounds, processors):
+        self.rounds = rounds
+        self.compile_rounds = compile_rounds
+
         self.processors = processors
-        self.test_types = ["Parameters", "Classes", "Methods"]
+        self.test_types = ["Parameters", "ParametersVoid", "Classes", "Methods"]
         self.ranges = {
             'Parameters': [1, 2, 3, 5, 10, 15, 20],
+            'ParametersVoid': [1, 2, 3, 5, 10, 15, 20],
             'Classes': [1, 2, 3, 4, 5, 8, 10],
             'Methods': [1, 2, 4, 5, 10, 20, 25]
         }
@@ -25,23 +27,38 @@ class Tester:
         # dictionary of all results (running time)
         self.results = {proc: {
             'Parameters': {x: [] for x in self.ranges['Parameters']},
+            'ParametersVoid': {x: [] for x in self.ranges['ParametersVoid']},
             'Classes': {x: [] for x in self.ranges['Classes']},
             'Methods': {x: [] for x in self.ranges['Methods']}
         } for proc in processors}
 
         # compilation times
         self.compile_times = {proc: {
-            'Parameters': {},
-            'Classes': {},
-            'Methods': {}
+            'Parameters': {x: [] for x in self.ranges['Parameters']},
+            'ParametersVoid': {x: [] for x in self.ranges['ParametersVoid']},
+            'Classes': {x: [] for x in self.ranges['Classes']},
+            'Methods': {x: [] for x in self.ranges['Methods']}
         } for proc in processors}
 
     def compile(self):
-        print("mvn clean")
-        subprocess.run(["mvn", "clean"])
+        print("cd ../")
+        os.chdir("../")
+        subprocess.run(["java", "-classpath", "target/classes/", "si.kisek.annotationdispatchtesting.GenerateTestCases"])
+
+        print("cd speedtest/")
+        os.chdir("speedtest/")
+
+        print("mvn -q clean")
+        subprocess.run(["mvn", "-q", "clean"])
 
         for proc in self.processors:
             print("\nRecompiling with ", proc, " annotation processor")
+
+            # clean the target dir
+            old_classes = os.listdir("classes-" + proc + "/")
+            print("cleaning out", len(old_classes), "old classes")
+            for file in old_classes:
+                os.remove("classes-" + proc + "/" + file)
 
             for type in self.test_types:
                 for num in self.ranges[type]:
@@ -49,21 +66,21 @@ class Tester:
                     str_processor = "-P" + proc
                     str_include = "-Dinclude=" + type + str(num) + ".java"
 
-                    print("mvn", str_processor, str_include, "compile")
-                    subprocess.run(["mvn", str_processor, str_include, "compile"])
+                    print("mvn", "-q", str_processor, str_include, "compile")
+                    subprocess.run(["mvn", "-q", str_processor, str_include, "compile"])
 
                     t = time.time() - t
                     print(t, "seconds")
-                    self.compile_times[proc][type][num] = t
+                    self.compile_times[proc][type][num].append(t)
 
-                    # move the classes to correct dir
+                    # move the new classes to target dir
                     files = os.listdir("target/classes/")
                     print("Moving", len(files), "files to " + "classes-" + proc + "/")
                     for file in files:
                         os.rename("target/classes/" + file, "classes-" + proc + "/" + file)
 
     def runTest(self):
-        for i in range(0, self.repeats):
+        for i in range(0, self.rounds):
             print("Test run", i)
             for processor in self.processors:
                 print("")
@@ -86,9 +103,9 @@ class Tester:
 
     def write_results(self):
         print("results:")
-        with open('testing_results.csv', 'w') as file:
+        with open('testing_results.csv', 'a') as file:
             header = 'processor,test,num'
-            for i in range(0, self.repeats):
+            for i in range(0, self.rounds):
                 header += ',res%d' % i
             header += ",avg\n"
 
@@ -96,7 +113,7 @@ class Tester:
             for proc in self.processors:
                 for t in self.test_types:
                     for num in self.ranges[t]:
-                        row = proc + ',' + t + ',' + str(num) + ',' + ','.join([str(i) for i in self.results[proc][t][num]]) + ',' + str(average_ms(self.results[proc][t][num])) + '\n'
+                        row = proc + ',' + t + ',' + str(num) + ',' + ','.join([str(i) for i in self.results[proc][t][num]]) + ',' + str(average(self.results[proc][t][num]) / 1e6) + '\n'
                         print(row)
                         file.write(row)
 
@@ -134,8 +151,8 @@ class Tester:
             for proc in self.processors:
                 c = colors.pop(0)
                 for num in self.ranges[t]:
-                    ax.scatter([num] * self.repeats, [(i / 1e6) for i in self.results[proc][t][num]], color=c)
-                ax.plot(self.ranges[t], [average_ms(self.results[proc][t][x]) for x in self.ranges[t]], '-', color=c)
+                    ax.scatter([num] * self.rounds * self.compile_rounds, [(i / 1e6) for i in self.results[proc][t][num]], color=c)
+                ax.plot(self.ranges[t], [average(self.results[proc][t][x]) / 1e6 for x in self.ranges[t]], '-', color=c)
                 legend.append(mpatches.Patch(color=c, label=proc))
                 colors.append(c)
 
@@ -160,24 +177,35 @@ class Tester:
 
             for proc in self.processors:
                 c = colors.pop(0)
-                ax.plot(self.ranges[t], [self.compile_times[proc][t][x] for x in self.ranges[t]], '-', color=c)
+                for num in self.ranges[t]:
+                    ax.scatter([num] * self.compile_rounds, self.compile_times[proc][t][num], color=c)
+                ax.plot(self.ranges[t], [average(self.compile_times[proc][t][x]) for x in self.ranges[t]], '-', color=c)
                 legend.append(mpatches.Patch(color=c, label=proc))
                 colors.append(c)
 
             plt.legend(handles=legend)
             plt.draw()
-            fig.savefig('figures/compile-time-' + t + '.pdf', bbox_inches='tight')
+            fig.savefig('figures/compileTime' + t + '.pdf', bbox_inches='tight')
 
 
 
 # main
-tester = Tester(20, ["visitor", "switch", "reflection"])
 
-# tester.compile()
-# tester.plot_compile_times()
+N = 4 # number of repeats per test case
+M = 5 # number of different generated test cases
+
+tester = Tester(N, M, ["visitor", "switch", "reflection"])
+
+# # clean the csv file
+# with open('testing_results.csv', 'w') as file:
+#     print("cleaning the csv file")
 #
-# tester.runTest()
-# tester.write_results()
+# for i in range(0, M):
+#     print("Test cases ", i)
+#     tester.compile()
+#     tester.runTest()
+#     tester.write_results()
 
 tester.read_csv()
 tester.plot_results()
+#tester.plot_compile_times()

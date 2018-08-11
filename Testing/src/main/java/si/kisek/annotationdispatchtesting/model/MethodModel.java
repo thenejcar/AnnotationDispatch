@@ -12,12 +12,15 @@ public class MethodModel {
     private HashMap<GeneratedClass, String> objects;
     private Set<String> initCode;
     private List<GeneratedClass> classes;
+    private boolean isVoid;
 
 
-    public MethodModel(String name, String modifiers, int numParameters) {
+    public MethodModel(String name, String modifiers, int numParameters, boolean isVoid) {
         this.name = name;
         this.modifiers = modifiers;
         this.numParameters = numParameters;
+        this.isVoid = isVoid;
+
         this.objects = new HashMap<>();
         this.initCode = new HashSet<>();
         this.classes = new ArrayList<>();
@@ -45,6 +48,10 @@ public class MethodModel {
 
     public void setNumParameters(int numParameters) {
         this.numParameters = numParameters;
+    }
+
+    public boolean isVoid() {
+        return isVoid;
     }
 
     public void addObject(GeneratedClass type, String varName, String initCode) {
