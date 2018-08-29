@@ -298,7 +298,7 @@ public class CodeGeneratorReflection {
 
 
             // get list of possible methods
-            // List<Method> candidates = methodMap.get("name").get(numParams
+            // List<Method> candidates = methodMap.get("name").get(numParams)
 
             Name candidates = el.getName("candidates");
             stats.add(tm.VarDef(

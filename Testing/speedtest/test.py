@@ -17,10 +17,12 @@ class Tester:
 
         self.processors = processors
         self.test_types = ["Parameters", "ParametersVoid", "Classes", "Methods"]
+        #self.test_types = ["Classes"]
         self.ranges = {
             'Parameters': [1, 2, 3, 5, 10, 15, 20],
             'ParametersVoid': [1, 2, 3, 5, 10, 15, 20],
-            'Classes': [1, 2, 3, 4, 5, 8, 10],
+            'Classes': [1, 2, 3, 4, 5, 8, 10, 12, 15, 20],
+            #'Classes': [10, 12, 15, 20],
             'Methods': [1, 2, 4, 5, 10, 20, 25]
         }
 
@@ -79,6 +81,37 @@ class Tester:
                     for file in files:
                         os.rename("target/classes/" + file, "classes-" + proc + "/" + file)
 
+    def write_compile_times(self):
+        print("compile times:")
+        with open('compile_times.csv', 'a') as file:
+            header = 'processor,test,num'
+            for i in range(0, self.compile_rounds):
+                header += ',res%d' % i
+            header += ",avg\n"
+
+            file.write(header)
+            for proc in self.processors:
+                for t in self.test_types:
+                    for num in self.ranges[t]:
+                        row = proc + ',' + t + ',' + str(num) + ',' + ','.join([str(i) for i in self.compile_times[proc][t][num]]) + ',' + str(average(self.compile_times[proc][t][num])) + '\n'
+                        print(row)
+                        file.write(row)
+
+            file.close()
+
+    def read_compile_times(self):
+        with open('compile_times.csv', 'r') as file:
+            reader = csv.reader(file)
+            next(reader)
+            for row in reader:
+                proc = row[0]
+                test = row[1]
+                num = int(row[2])
+                times = row[3:-1]
+
+                # overwrite the lists in the results dict
+                self.compile_times[proc][test][num] = [int(x) for x in times]
+
     def runTest(self):
         for i in range(0, self.rounds):
             print("Test run", i)
@@ -119,7 +152,7 @@ class Tester:
 
             file.close()
 
-    def read_csv(self):
+    def read_results(self):
         with open('testing_results.csv', 'r') as file:
             reader = csv.reader(file)
             next(reader)
@@ -187,25 +220,63 @@ class Tester:
             plt.draw()
             fig.savefig('figures/compileTime' + t + '.pdf', bbox_inches='tight')
 
+    def combined_parameters_plot(self):
+        fig = plt.figure(figsize=(7, 7))
+        fig.suptitle("Visitor comparison with void methods")
+        ax = fig.add_subplot(111)
+        ax.set_label('Number of Parameters')
+        ax.set_ylabel('Compile time [s]')
+        ax.grid(which='major', linestyle='-')
+        ax.grid(which='minor', linestyle=':')
+
+        legend = []
+
+        proc = "visitor"
+        c1 = 'r'
+        c2 = '#800000'
+
+        t = "Parameters"
+        for num in self.ranges[t]:
+            ax.scatter([num] * self.rounds * self.compile_rounds, [(i / 1e6) for i in self.results[proc][t][num]], color=c1)
+        ax.plot(self.ranges[t], [average(self.results[proc][t][x]) / 1e6 for x in self.ranges[t]], '-', color=c1)
+        legend.append(mpatches.Patch(color=c1, label=proc))
+
+        t = "ParametersVoid"
+        for num in self.ranges[t]:
+            ax.scatter([num] * self.rounds * self.compile_rounds, [(i / 1e6) for i in self.results[proc][t][num]], color=c2)
+        ax.plot(self.ranges[t], [average(self.results[proc][t][x]) / 1e6 for x in self.ranges[t]], '-', color=c2)
+        legend.append(mpatches.Patch(color=c2, label=proc + " (void methods)"))
+
+        plt.legend(handles=legend)
+        plt.draw()
+        fig.savefig('figures/compileTimeParameters-Both.pdf', bbox_inches='tight')
 
 
 # main
 
-N = 4 # number of repeats per test case
+N = 5 # number of repeats per test case
 M = 5 # number of different generated test cases
 
 tester = Tester(N, M, ["visitor", "switch", "reflection"])
 
-# # clean the csv file
+## clean the csv files
 # with open('testing_results.csv', 'w') as file:
-#     print("cleaning the csv file")
+#     print("cleaning the csv file: " + file.name)
 #
-# for i in range(0, M):
-#     print("Test cases ", i)
-#     tester.compile()
-#     tester.runTest()
-#     tester.write_results()
+# with open('compile_times.csv', 'w') as file:
+#     print("cleaning the csv file: " + file.name)
+#
+for i in range(0, M):
+     print("Test cases ", i)
+     tester.compile()
+     tester.runTest()
 
-tester.read_csv()
+tester.write_results()
+tester.write_compile_times()
+
+
+#tester.read_results()
 tester.plot_results()
-#tester.plot_compile_times()
+tester.combined_parameters_plot()
+#tester.read_compile_times()
+tester.plot_compile_times()

@@ -3,14 +3,9 @@ package si.kisek.annotationdispatch.utils;
 import com.sun.tools.javac.code.Scope;
 import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.tree.JCTree;
-import si.kisek.annotationdispatch.MultiDispatchClass;
-import si.kisek.annotationdispatch.models.MethodInstance;
-import si.kisek.annotationdispatch.models.MethodModel;
 
-import javax.lang.model.element.Element;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.lang.reflect.Type;
 
 public class Utils {
 

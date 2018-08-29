@@ -10,6 +10,9 @@
     <output-test url="file://$MODULE_DIR$/target/test-classes" />
     <content url="file://$MODULE_DIR$">
       <sourceFolder url="file://$MODULE_DIR$/src/main/java" isTestSource="false" />
+      <excludeFolder url="file://$MODULE_DIR$/classes-reflection" />
+      <excludeFolder url="file://$MODULE_DIR$/classes-switch" />
+      <excludeFolder url="file://$MODULE_DIR$/classes-visitor" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
     <orderEntry type="inheritedJdk" />
