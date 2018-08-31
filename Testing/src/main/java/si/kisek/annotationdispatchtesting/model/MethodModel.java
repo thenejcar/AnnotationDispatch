@@ -11,7 +11,7 @@ public class MethodModel {
     private int numParameters;
     private HashMap<GeneratedClass, String> objects;
     private Set<String> initCode;
-    private List<GeneratedClass> classes;
+    private Set<GeneratedClass> classes;
     private boolean isVoid;
 
 
@@ -23,7 +23,7 @@ public class MethodModel {
 
         this.objects = new HashMap<>();
         this.initCode = new HashSet<>();
-        this.classes = new ArrayList<>();
+        this.classes = new HashSet<>();
     }
 
     public String getName() {
@@ -71,7 +71,7 @@ public class MethodModel {
         this.classes.addAll(classes);
     }
 
-    public List<GeneratedClass> getClasses() {
+    public Set<GeneratedClass> getClasses() {
         return classes;
     }
 

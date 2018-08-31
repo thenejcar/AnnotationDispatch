@@ -13,13 +13,13 @@ import java.util.stream.Stream;
  * */
 public class Generator {
 
-    public static String generateTestClass(String className, int nMultimethods, int nInstancesEach, int nCallsEach, int nParameters, int classesDepth, int classesWidth, boolean isVoid) {
+    public static String generateTestClass(String className, int nMultimethods, int nInstancesEach, int nCallsEach, int nParameters, int classesRoots, int classesDepth, int classesWidth, boolean isVoid) {
 
         Map<MethodModel, List<MethodInstance>> methodMap = IntStream.range(0, nMultimethods).mapToObj(i ->
                 new MethodModel("m" + "_" + i + "_" + UUID.randomUUID().toString().replace("-", "").substring(4, 8), "public static", nParameters, isVoid)
         ).collect(Collectors.toMap(
                 mm -> mm,
-                mm -> generateMethods(mm, nInstancesEach, nCallsEach, classesDepth, classesWidth)
+                mm -> generateMethods(mm, nInstancesEach, nCallsEach, classesDepth, classesDepth, classesWidth)
         ));
 
         List<String> parameterClasses = methodMap.keySet().stream().flatMap(mm -> mm.getClasses().stream().map(gc ->
@@ -76,11 +76,22 @@ public class Generator {
 
     }
 
+    private static <T> List<T> nFromList(List<T> list, int n) {
 
-    public static List<MethodInstance> generateMethods(MethodModel mm, int nMethods, int nCalls, int classesDepth, int classesWidth) {
-        final List<ClassTree> parameterClasses = generateNames(mm.getNumParameters(), 'A', 'Z').stream().map(name ->
-                ClassTree.generate(name + "_" + mm.getName(), classesDepth, classesWidth)
+        List<T> result = new ArrayList<>();
+        Random r = new Random();
+        while (result.size() < n)
+            result.add(list.get(r.nextInt(list.size())));
+
+        return result;
+    }
+
+    public static List<MethodInstance> generateMethods(MethodModel mm, int nMethods, int nCalls, int classesRoots, int classesDepth, int classesWidth) {
+        List<ClassTree> allClasses = generateNames(classesRoots, 'A', 'Z').stream().map(name ->
+                ClassTree.generateWidthDepth(name + "_" + mm.getName(), classesDepth, classesWidth)
         ).collect(Collectors.toList());
+
+        List<ClassTree> parameterClasses = nFromList(allClasses, mm.getNumParameters());
 
         final List<List<GeneratedClass>> flatParameterClasses = parameterClasses.stream().map(ClassTree::flatten).collect(Collectors.toList());
         mm.addClasses(flatParameterClasses.stream().flatMap(Collection::stream).collect(Collectors.toList()));

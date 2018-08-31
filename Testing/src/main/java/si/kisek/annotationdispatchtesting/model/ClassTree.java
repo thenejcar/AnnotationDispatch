@@ -41,6 +41,14 @@ public class ClassTree {
             return 1 + children.stream().mapToInt(ClassTree::count).sum();
     }
 
+    public int getDepth() {
+        if (children == null || children.size() == 0)
+            return 1;
+        else {
+            return 1 + children.stream().map(ClassTree::getDepth).max(Integer::compare).get();
+        }
+    }
+
     /*
     * get the classes with dfs, generating a sorted most-specific-first list of all classes
     * */
@@ -58,7 +66,17 @@ public class ClassTree {
         }
     }
 
-    public static ClassTree generate(String prefix, int maxDepth, int maxChildren) {
+    public static ClassTree generateWidthDepth(String prefix, int depth, int maxChildren) {
+        ClassTree tree = generate(prefix, depth, maxChildren);
+        while (tree.getDepth() != depth + 1) {
+            System.out.println("Depth not correct, generating a new ClassTree");
+            tree = generate(prefix, depth, maxChildren);
+        }
+
+        return tree;
+    }
+
+    private static ClassTree generate(String prefix, int maxDepth, int maxChildren) {
         String body = "private static class " + prefix + " {\n" +
                 "    public String identify() {\n" +
                 "        return \"" + prefix + "\";\n" +

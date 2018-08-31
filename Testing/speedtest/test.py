@@ -2,6 +2,7 @@ import csv
 import os
 import subprocess
 import time
+import glob
 
 from matplotlib import pyplot as plt
 from matplotlib import patches as mpatches
@@ -16,14 +17,18 @@ class Tester:
         self.compile_rounds = compile_rounds
 
         self.processors = processors
-        self.test_types = ["Parameters", "ParametersVoid", "Classes", "Methods"]
-        #self.test_types = ["Classes"]
+        self.test_types = ["Parameters", "Classes", "ClassesWidth", "Methods", "Instances",  "ParametersVoid", "ClassesVoid", "MethodsVoid", "InstancesVoid"]
+        #self.test_types = ["ClassesWidth"]
         self.ranges = {
             'Parameters': [1, 2, 3, 5, 10, 15, 20],
             'ParametersVoid': [1, 2, 3, 5, 10, 15, 20],
-            'Classes': [1, 2, 3, 4, 5, 8, 10, 12, 15, 20],
-            #'Classes': [10, 12, 15, 20],
-            'Methods': [1, 2, 4, 5, 10, 20, 25]
+            'Classes': [1, 2, 3, 4, 5, 8, 10],
+            'ClassesVoid': [1, 2, 3, 4, 5, 8, 10],
+            'ClassesWidth': [1, 2, 3, 4, 5, 8, 10],
+            'Methods': [1, 2, 4, 5, 10, 20, 25],
+            'MethodsVoid': [1, 2, 4, 5, 10, 20, 25],
+            'Instances': [1, 2, 4, 5, 10, 20, 25],
+            'InstancesVoid': [1, 2, 4, 5, 10, 20, 25]
         }
 
         # dictionary of all results (running time)
@@ -31,7 +36,12 @@ class Tester:
             'Parameters': {x: [] for x in self.ranges['Parameters']},
             'ParametersVoid': {x: [] for x in self.ranges['ParametersVoid']},
             'Classes': {x: [] for x in self.ranges['Classes']},
-            'Methods': {x: [] for x in self.ranges['Methods']}
+            'ClassesVoid': {x: [] for x in self.ranges['ClassesVoid']},
+            'ClassesWidth': {x: [] for x in self.ranges['ClassesWidth']},
+            'Methods': {x: [] for x in self.ranges['Methods']},
+            'MethodsVoid': {x: [] for x in self.ranges['MethodsVoid']},
+            'Instances': {x: [] for x in self.ranges['Instances']},
+            'InstancesVoid': {x: [] for x in self.ranges['InstancesVoid']}
         } for proc in processors}
 
         # compilation times
@@ -39,8 +49,26 @@ class Tester:
             'Parameters': {x: [] for x in self.ranges['Parameters']},
             'ParametersVoid': {x: [] for x in self.ranges['ParametersVoid']},
             'Classes': {x: [] for x in self.ranges['Classes']},
-            'Methods': {x: [] for x in self.ranges['Methods']}
+            'ClassesVoid': {x: [] for x in self.ranges['ClassesVoid']},
+            'ClassesWidth': {x: [] for x in self.ranges['ClassesWidth']},
+            'Methods': {x: [] for x in self.ranges['Methods']},
+            'MethodsVoid': {x: [] for x in self.ranges['MethodsVoid']},
+            'Instances': {x: [] for x in self.ranges['Instances']},
+            'InstancesVoid': {x: [] for x in self.ranges['InstancesVoid']}
         } for proc in processors}
+
+        self.naslov = {
+            "Parameters": "Število parametrov",
+            "ParametersVoid": "Število parametrov",
+            "Methods": "Število metod",
+            "MethodsVoid": "Število metod",
+            "Instances": "Število instanc",
+            "InstancesVoid": "Število instanc",
+            "Classes": "Globina razredne hierarhije",
+            "ClassesVoid": "Globina razredne hierarhije",
+            "ClassesWidth": "Širina razredne hierarhije"
+        }
+        self.marker = '.'
 
     def compile(self):
         print("cd ../")
@@ -110,12 +138,14 @@ class Tester:
                 times = row[3:-1]
 
                 # overwrite the lists in the results dict
-                self.compile_times[proc][test][num] = [int(x) for x in times]
+                self.compile_times[proc][test][num] = [float(x) for x in times]
 
     def runTest(self):
         for i in range(0, self.rounds):
             print("Test run", i)
             for processor in self.processors:
+                if (processor == 'unmodified'):
+                    continue  # skip the default
                 print("")
                 print(processor + ":")
                 # move to target dir and run programs
@@ -144,6 +174,8 @@ class Tester:
 
             file.write(header)
             for proc in self.processors:
+                if (proc == 'unmodified'):
+                    continue  # skip the default
                 for t in self.test_types:
                     for num in self.ranges[t]:
                         row = proc + ',' + t + ',' + str(num) + ',' + ','.join([str(i) for i in self.results[proc][t][num]]) + ',' + str(average(self.results[proc][t][num]) / 1e6) + '\n'
@@ -166,106 +198,210 @@ class Tester:
                 self.results[proc][test][num] = [int(x) for x in results]
 
 
-    def plot_results(self):
+    def plot_results(self, includeVisitor=True):
         # plot running speed for all tests
         for t in self.test_types:
-            fig = plt.figure(figsize=(12, 12))
-            fig.suptitle("Speedtest comparison by number of " + t)
+            fig = plt.figure(figsize=(7, 7))
+            #fig.suptitle("Speedtest comparison by number of " + t)
             ax = fig.add_subplot(111)
-            ax.set_label('Number of ' + t)
-            ax.set_ylabel('Time [ms]')
+            ax.set_xlabel(self.naslov[t])
+            ax.set_ylabel('Čas izvajanja [ms]')
             ax.grid(which='major', linestyle='-')
             ax.grid(which='minor', linestyle=':')
-
-            colors = ['r', 'g', 'b']
 
             legend = []
 
             for proc in self.processors:
-                c = colors.pop(0)
+                if (proc == 'unmodified'):
+                    continue  # skip the default
+                elif (proc == 'visitor'):
+                    if (not includeVisitor):
+                        continue
+
+                    if t.endswith("Void"):
+                        labela = "Obiskovalec (void)"
+                        c = '#800000'
+                    else:
+                        labela = "Obiskovalec"
+                        c = 'r'
+                elif (proc == 'switch'):
+                    labela = "Odločitevno drevo"
+                    c = 'g'
+                elif (proc == 'reflection'):
+                    labela = "Refleksija"
+                    c = 'b'
+                else:
+                    labela = proc
+                    c = 'k'
+
                 for num in self.ranges[t]:
-                    ax.scatter([num] * self.rounds * self.compile_rounds, [(i / 1e6) for i in self.results[proc][t][num]], color=c)
+                    ax.scatter([num] * self.rounds * self.compile_rounds, [(i / 1e6) for i in self.results[proc][t][num]], marker=self.marker, color=c)
                 ax.plot(self.ranges[t], [average(self.results[proc][t][x]) / 1e6 for x in self.ranges[t]], '-', color=c)
-                legend.append(mpatches.Patch(color=c, label=proc))
-                colors.append(c)
+                legend.append(mpatches.Patch(color=c, label=labela))
 
             plt.legend(handles=legend)
             plt.draw()
-            fig.savefig('figures/speedtest' + t + '.pdf', bbox_inches='tight')
+            if (includeVisitor):
+                fig.savefig('figures/speedtest' + t + '.pdf', bbox_inches='tight')
+            else:
+                fig.savefig('figures/speedtest' + t + 'NoVisitor.pdf', bbox_inches='tight')
 
-    def plot_compile_times(self):
+    def plot_compile_times(self, includeVisitor=True):
+
         # plot compile times of all classes
         for t in self.test_types:
             fig = plt.figure(figsize=(7, 7))
-            fig.suptitle("Compile time comparison by number of " + t)
+            #fig.suptitle("Compile time comparison by number of " + t)
             ax = fig.add_subplot(111)
-            ax.set_label('Number of ' + t)
-            ax.set_ylabel('Compile time [s]')
+            ax.set_xlabel(self.naslov[t])
+            ax.set_ylabel('Čas prevajanja [s]')
             ax.grid(which='major', linestyle='-')
             ax.grid(which='minor', linestyle=':')
-
-            colors = ['r', 'g', 'b']
 
             legend = []
 
             for proc in self.processors:
-                c = colors.pop(0)
+                if (proc == 'unmodified'):
+                    labela = "Brez obdelave anotacij"
+                    c = 'k'
+                elif (proc == 'visitor'):
+                    if (not includeVisitor):
+                        continue
+
+                    if t.endswith("Void"):
+                        labela = "Obiskovalec (void)"
+                        c = '#800000'
+                    else:
+                        labela = "Obiskovalec"
+                        c = 'r'
+                elif (proc == 'switch'):
+                    labela = "Odločitevno drevo"
+                    c = 'g'
+                elif (proc == 'reflection'):
+                    labela = "Refleksija"
+                    c = 'b'
+                else:
+                    labela = proc
+                    c = 'k'
+
                 for num in self.ranges[t]:
-                    ax.scatter([num] * self.compile_rounds, self.compile_times[proc][t][num], color=c)
+                    ax.scatter([num] * self.compile_rounds, self.compile_times[proc][t][num], marker=self.marker, color=c)
                 ax.plot(self.ranges[t], [average(self.compile_times[proc][t][x]) for x in self.ranges[t]], '-', color=c)
-                legend.append(mpatches.Patch(color=c, label=proc))
-                colors.append(c)
+                legend.append(mpatches.Patch(color=c, label=labela))
 
             plt.legend(handles=legend)
             plt.draw()
-            fig.savefig('figures/compileTime' + t + '.pdf', bbox_inches='tight')
+            if (includeVisitor):
+                fig.savefig('figures/compileTime' + t + '.pdf', bbox_inches='tight')
+            else:
+                fig.savefig('figures/compileTime' + t + 'NoVisitor.pdf', bbox_inches='tight')
 
     def combined_parameters_plot(self):
-        fig = plt.figure(figsize=(7, 7))
-        fig.suptitle("Visitor comparison with void methods")
-        ax = fig.add_subplot(111)
-        ax.set_label('Number of Parameters')
-        ax.set_ylabel('Compile time [s]')
-        ax.grid(which='major', linestyle='-')
-        ax.grid(which='minor', linestyle=':')
 
-        legend = []
 
-        proc = "visitor"
-        c1 = 'r'
-        c2 = '#800000'
+        for t in ["Parameters", "Classes", "Methods", "Instances"]:
 
-        t = "Parameters"
-        for num in self.ranges[t]:
-            ax.scatter([num] * self.rounds * self.compile_rounds, [(i / 1e6) for i in self.results[proc][t][num]], color=c1)
-        ax.plot(self.ranges[t], [average(self.results[proc][t][x]) / 1e6 for x in self.ranges[t]], '-', color=c1)
-        legend.append(mpatches.Patch(color=c1, label=proc))
+            fig = plt.figure(figsize=(7, 7))
+            #fig.suptitle("Visitor comparison with void methods")
+            ax = fig.add_subplot(111)
+            #ax.set_xlabel('Number of Parameters')
+            ax.set_xlabel(self.naslov[t])
+            #ax.set_ylabel('Compile time [s]')
+            ax.set_ylabel('Čas izvajanja [s]')
+            ax.grid(which='major', linestyle='-')
+            ax.grid(which='minor', linestyle=':')
 
-        t = "ParametersVoid"
-        for num in self.ranges[t]:
-            ax.scatter([num] * self.rounds * self.compile_rounds, [(i / 1e6) for i in self.results[proc][t][num]], color=c2)
-        ax.plot(self.ranges[t], [average(self.results[proc][t][x]) / 1e6 for x in self.ranges[t]], '-', color=c2)
-        legend.append(mpatches.Patch(color=c2, label=proc + " (void methods)"))
+            legend = []
 
-        plt.legend(handles=legend)
-        plt.draw()
-        fig.savefig('figures/compileTimeParameters-Both.pdf', bbox_inches='tight')
+            proc = "visitor"
+            c1 = 'r'
+            c2 = '#800000'
 
+            for num in self.ranges[t]:
+                ax.scatter([num] * self.rounds * self.compile_rounds, [(i / 1e6) for i in self.results[proc][t][num]], marker=self.marker, color=c1)
+            ax.plot(self.ranges[t], [average(self.results[proc][t][x]) / 1e6 for x in self.ranges[t]], '-', color=c1)
+            legend.append(mpatches.Patch(color=c1, label="Obiskovalec"))
+
+            for num in self.ranges[t+"Void"]:
+                ax.scatter([num] * self.rounds * self.compile_rounds, [(i / 1e6) for i in self.results[proc][t+"Void"][num]], marker=self.marker, color=c2)
+            ax.plot(self.ranges[t+"Void"], [average(self.results[proc][t+"Void"][x]) / 1e6 for x in self.ranges[t+"Void"]], '-', color=c2)
+            legend.append(mpatches.Patch(color=c2, label="Obiskovalec (void)"))
+
+            plt.legend(handles=legend)
+            plt.draw()
+            fig.savefig('figures/speedtest' + t + 'Both.pdf', bbox_inches='tight')
+
+    def plot_filesizes(self, includeVisitor=True):
+        for t in self.test_types:
+            fig = plt.figure(figsize=(7, 7))
+            #fig.suptitle("File size comparison by number of " + t)
+            ax = fig.add_subplot(111)
+            ax.set_label('Number of ' + t)
+            ax.set_ylabel('Size [MB]')
+            ax.grid(which='major', linestyle='-')
+            ax.grid(which='minor', linestyle=':')
+
+            legend = []
+
+            for proc in self.processors:
+                print("Filesize -- " + t + " " + proc)
+                if (proc == 'unmodified'):
+                    labela = "Brez obdelave anotacij"
+                    c = 'k'
+                elif (proc == 'visitor'):
+                    if (not includeVisitor):
+                        continue
+
+                    if t == 'ParametersVoid':
+                        labela = "Obiskovalec (void)"
+                        c = '#800000'
+                    else:
+                        labela = "Obiskovalec"
+                        c = 'r'
+                elif (proc == 'switch'):
+                    labela = "Odločitevno drevo"
+                    c = 'g'
+                elif (proc == 'reflection'):
+                    labela = "Refleksija"
+                    c = 'b'
+                else:
+                    labela = proc
+                    c = 'k'
+                sizes = [filesize(proc, t , r) for r in self.ranges[t]]
+                print("Sizes:", sizes)
+
+                ax.plot(self.ranges[t], sizes, '-', color=c)
+                legend.append(mpatches.Patch(color=c, label=proc))
+
+            plt.legend(handles=legend)
+            plt.draw()
+
+            if (includeVisitor):
+                fig.savefig('figures/filesize' + t + '.pdf', bbox_inches='tight')
+            else:
+                fig.savefig('figures/filesize' + t + 'NoVisitor.pdf', bbox_inches='tight')
+
+def filesize(proc, type, num):
+    s = 0
+    s += os.path.getsize("classes-" + proc + "/" + type + str(num)  + ".class")
+    for file in glob.glob("classes-" + proc + "/" + type + str(num)  + "$*"):
+        s += os.path.getsize(file)
+    return s / 1e6
 
 # main
 
 N = 5 # number of repeats per test case
 M = 5 # number of different generated test cases
 
-tester = Tester(N, M, ["visitor", "switch", "reflection"])
+tester = Tester(N, M, ["visitor", "switch", "reflection", "unmodified"])
 
 ## clean the csv files
-# with open('testing_results.csv', 'w') as file:
-#     print("cleaning the csv file: " + file.name)
-#
-# with open('compile_times.csv', 'w') as file:
-#     print("cleaning the csv file: " + file.name)
-#
+with open('testing_results.csv', 'w') as file:
+    print("cleaning the csv file: " + file.name)
+
+with open('compile_times.csv', 'w') as file:
+    print("cleaning the csv file: " + file.name)
+
 for i in range(0, M):
      print("Test cases ", i)
      tester.compile()
@@ -274,9 +410,14 @@ for i in range(0, M):
 tester.write_results()
 tester.write_compile_times()
 
-
 #tester.read_results()
 tester.plot_results()
+tester.plot_results(False)
 tester.combined_parameters_plot()
+
 #tester.read_compile_times()
 tester.plot_compile_times()
+tester.plot_compile_times(False)
+
+tester.plot_filesizes()
+tester.plot_filesizes(False)

@@ -26,11 +26,11 @@ public class MethodInstanceTree {
     private GeneratedClass types;
     private Node root;
     private List<MethodInstance> sortedInstances = null;
-    private List<List<GeneratedClass>> flatTypes;
+    private List<List<GeneratedClass>> hierarchies;
 
-    public MethodInstanceTree(MethodModel mm, Set<MethodInstance> instances, List<List<GeneratedClass>> flatTypes) {
+    public MethodInstanceTree(MethodModel mm, Set<MethodInstance> instances, List<List<GeneratedClass>> hierarchies) {
         this.mm = mm;
-        this.flatTypes = flatTypes;
+        this.hierarchies = hierarchies;
         this.root = buildTree(null, 0, instances);
     }
 
@@ -49,7 +49,7 @@ public class MethodInstanceTree {
             }
 
             // get the type tree for the current parameter
-            List<GeneratedClass> argTypes = flatTypes.get(argPos);
+            List<GeneratedClass> argTypes = hierarchies.get(argPos);
 
             List<Node> subtrees = new ArrayList<>();
             for (GeneratedClass t : argTypes) {
