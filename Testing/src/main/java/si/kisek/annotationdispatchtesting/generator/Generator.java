@@ -118,6 +118,7 @@ public class Generator {
             List<GeneratedClass> randomParams = flatParameterClasses.stream().map(flatList -> flatList.get(r.nextInt(flatList.size()))).collect(Collectors.toList());
 
             for (MethodInstance mi : sortedMethods) {
+                // add method only if it really dispatches to the target method (so that we can have the correctness check)
                 boolean allOk = true;
                 for (int i = 0; i < mm.getNumParameters(); i++) {
                     if (!parameterClasses.get(i).isSupertype(mi.getParameters().get(i), randomParams.get(i))) {

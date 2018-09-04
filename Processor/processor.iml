@@ -12,7 +12,7 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="annotation" />
     <orderEntry type="module-library">
-      <library name="Maven: com.sun:tools:1.7">
+      <library name="Maven: com.sun:tools:1.8">
         <CLASSES>
           <root url="jar:///Library/Java/JavaVirtualMachines/jdk1.8.0_91.jdk/Contents/Home/lib/tools.jar!/" />
         </CLASSES>
@@ -21,7 +21,7 @@
       </library>
     </orderEntry>
     <orderEntry type="module-library">
-      <library name="Maven: com.sun:source:1.7">
+      <library name="Maven: com.sun:source:1.8">
         <CLASSES>
           <root url="jar:///Library/Java/JavaVirtualMachines/jdk1.8.0_91.jdk/Contents/Home/lib/tools.jar!/" />
         </CLASSES>

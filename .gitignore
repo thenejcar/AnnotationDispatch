@@ -5,3 +5,5 @@ Processor/target
 Testing/target
 Testing/speedtest/target
 *.class
+Testing/speedtest/src/main/java
+Testing/speedtest/figures
