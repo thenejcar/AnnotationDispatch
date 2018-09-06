@@ -1,5 +1,6 @@
 package si.kisek.annotationdispatch.models;
 
+import com.sun.tools.javac.code.Flags;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.code.TypeTag;
 import com.sun.tools.javac.model.JavacElements;
@@ -98,6 +99,10 @@ public class MethodModel {
     }
     public String getExceptionName() {
         return "Exception_" + randomness;
+    }
+
+    public boolean isStatic() {
+        return this.modifiers != null && (this.modifiers.flags & Flags.STATIC) == Flags.STATIC;
     }
 
     @Override

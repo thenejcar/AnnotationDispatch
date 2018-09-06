@@ -357,7 +357,7 @@ public class CodeGeneratorReflection {
             // parameters for invocation: this or null + new Object[] {arg0, arg1, ...}
             List<JCTree.JCExpression> invParams = new ArrayList<>();
 
-            if ((mm.getModifiers().flags & Flags.STATIC) == Flags.STATIC) {
+            if (mm.isStatic()) {
                 invParams.add(tm.Literal(TypeTag.BOT, null));
             } else {
                 invParams.add(tm.Ident(el.getName("this")));

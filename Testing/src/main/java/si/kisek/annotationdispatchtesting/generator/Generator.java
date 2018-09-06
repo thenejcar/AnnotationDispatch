@@ -1,12 +1,10 @@
 package si.kisek.annotationdispatchtesting.generator;
 
-import jdk.internal.org.objectweb.asm.tree.MethodInsnNode;
 import si.kisek.annotationdispatchtesting.model.*;
 
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 /*
  * Generate test cases for multiple dispatch

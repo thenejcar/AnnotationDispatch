@@ -67,28 +67,31 @@ public class ProcessorVisitor extends MultidispatchProcessor {
             this.acceptMethods = generateAcceptMethods(roundEnv);
 
             for (MethodModel mm : super.originalMethods.keySet()) {
+
                 CodeGeneratorVisitor generator = new CodeGeneratorVisitor(super.tm, super.elements, super.types, super.symtab, mm, this.acceptMethods.get(mm), this.originalMethods.get(mm));
+
+                // first, generate the empty Visitor & Visitable classes
                 generator.generateVisitableAndVisitor();
-                processingEnv.getMessager().printMessage(Diagnostic.Kind.OTHER, generator.getVisitableInterfaceName() + " generated and filled with visit methods");
 
-                for (Element e : roundEnv.getElementsAnnotatedWith(MultiDispatchVisitable.class)) {
-                    JCTree.JCClassDecl classDecl = ((JCTree.JCClassDecl) trees.getPath(e).getLeaf());
-                    // TODO: detect and complain when some accept types are missing the annotation
-
-                    // implement the Visitable interface (add the accept methods)
-                    generator.modifyVisitableClass(classDecl, rootTypes.contains(classDecl.sym.type));
-
-                    //System.out.println("Processing of visitable class " + e.getSimpleName() + " done.");
-                }
-
+                // geenrate the init method and replace the original usages with it
                 JCTree.JCMethodDecl initMethod = generator.createVisitorInitMethod();
-
                 for (Element e : roundEnv.getElementsAnnotatedWith(MultiDispatchClass.class)) {
                     JCTree.JCClassDecl classDecl = (JCTree.JCClassDecl) trees.getPath(e).getLeaf();
                     if (classDecl == mm.getParentClass()) {
                         super.replaceMethodsInClass(mm, initMethod, classDecl);
                         processingEnv.getMessager().printMessage(Diagnostic.Kind.OTHER, "MultiDispatchClass " + e.getSimpleName() + " references to " + mm.getName() +" replaced.");
                     }
+                }
+
+                // generate all visit/accept methods
+                generator.fillVisitableAndVisitor();
+                processingEnv.getMessager().printMessage(Diagnostic.Kind.OTHER, generator.getVisitableInterfaceName() + " generated and filled with visit methods");
+                for (Element e : roundEnv.getElementsAnnotatedWith(MultiDispatchVisitable.class)) {
+                    JCTree.JCClassDecl classDecl = ((JCTree.JCClassDecl) trees.getPath(e).getLeaf());
+                    // TODO: detect and complain when some accept types are missing the annotation
+                    // implement the Visitable interface (add the accept methods)
+                    generator.modifyVisitableClass(classDecl, rootTypes.contains(classDecl.sym.type));
+                    //System.out.println("Processing of visitable class " + e.getSimpleName() + " done.");
                 }
             }
 

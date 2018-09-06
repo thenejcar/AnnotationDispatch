@@ -10,6 +10,8 @@ public class AnotherClass {
 
     @MultiDispatchVisitable
     static class Nekej {
+        public AnotherClass a_field;
+
         String metoda() {
             return "Nekej";
         }
@@ -31,47 +33,39 @@ public class AnotherClass {
     public static void doSomething() {
 
         Nekej n1 = new Nekej();
+
+        n1.a_field = new AnotherClass();
+
         Nekej n2 = new NekajDrugega();
         NekajDrugega nd = new NekajDrugega();
 
-        // single dispatch -- default java behavior
-        System.out.println("n1: " + n1.metoda());
+        AnotherClass ths = new AnotherClass();
 
-        System.out.println("n2: " + n2.metoda());
-        System.out.println("nd: " + nd.metoda());
+        // testing the non-static methods
+        System.out.println("n1 (should be " + n1.metoda() + "): " + ths.kdoJeParameter(n1));
 
-        System.out.println();
+        System.out.println("n2 (should be " + n2.metoda() + "): " + ths.kdoJeParameter(n2));
 
-        // multiple dispatch -- needs the annotations on method declarations
-        System.out.print("n1 (should be " + n1.metoda() + "): ");
-        kdoJeParameter(n1);
-        System.out.print("n2 (should be " + n2.metoda() + "): ");
-        kdoJeParameter(n2);
-        System.out.print("nd (should be " + nd.metoda() + "): ");
-        kdoJeParameter(nd);
+        System.out.println("nd (should be " + nd.metoda() + "): " + ths.kdoJeParameter(nd));
 
-        System.out.print("oba: ");
-        kdoJeParameter(n1, nd);
+        System.out.println("oba: " + ths.kdoJeParameter(n1, nd));
     }
 
 
     @MultiDispatch
-    static String kdoJeParameter(Nekej n) {
+    String kdoJeParameter(Nekej n) {
         String description = "parameter je nekej";
-        System.out.println(description);
         return description;
     }
 
     @MultiDispatch
-    static String kdoJeParameter(NekajDrugega t) {
+    String kdoJeParameter(NekajDrugega t) {
         String description = "parameter je nekaj drugega";
-        System.out.println(description);
         return description;
     }
 
-    static String kdoJeParameter(Nekej n, NekajDrugega nd) {
+    String kdoJeParameter(Nekej n, NekajDrugega nd) {
         String description = "parametra sta oba";
-        System.out.println(description);
         return description;
     }
 

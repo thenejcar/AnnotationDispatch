@@ -15,7 +15,7 @@ import java.util.List;
 * */
 public class GenerateTestCases {
 
-    private static final String GENERATED_PATH = "speedtest/src/main/java/";
+    private static final String GENERATED_PATH = "generated-tests/src/main/java/";
 
 
     public static void main(String[] args) {

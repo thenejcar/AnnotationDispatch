@@ -7,3 +7,7 @@ Testing/speedtest/target
 *.class
 Testing/speedtest/src/main/java
 Testing/speedtest/figures
+Testing/figures
+Testing/generated-tests/src/main/java
+Testing/generated-tests/target
+*.iml

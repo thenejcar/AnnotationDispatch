@@ -9,13 +9,13 @@ Implementation of multiple dispatch in Java using annotation processing mechanis
 
 ### Demo
 
-**./demo.bash** script will compile both dependencies (Annotation and Processor) and use them during compilation of the Demo project which contains two demo programs. They will first be compiled without the annotation processing to show the regular Java dispatching behavior and then compiled again with all three implemented annotation processors, showing how the programs behave with multiple dispatch.
+The `./demo.bash` script will compile both dependencies (Annotation and Processor) and use them during compilation of the Demo project which contains two demo programs. They will first be compiled without the annotation processing to show the regular Java dispatching behavior and then compiled again with all three implemented annotation processors, showing how the programs behave with multiple dispatch.
 
 ### Debugging the annotation processor
 
  - put a breakpoint at the desired line in one of the files in the Processor project
  - run `debug-____.bash` script (builds the processor and annotation, then starts the compilation of the Demo project)
- - connect to port 8000 with the debugger (for example, with IntelliJ IDEA use "remote" run configuration)
+ - connect to port 8000 with the debugger (for example, in IntelliJ IDEA use "remote" run configuration)
  - optionally, change the commented *verbose* tags in `Demo/pom.xml` to true, to get more compiler messages
 
 ### Using the library
@@ -26,9 +26,9 @@ Directory **Annotations/** contains the annotations that need to be added to the
  - `@MultiDispatchClass` should be places on all classes where the annotated methods will be used. If the methods are used in a class that is not annotated with this annotation, they will behave in a regular Java way.
  - `@MultiDispatchVisitable` should be placed on all classes that are used as parameters in dispatched methods, if you want to use the *visitor* dispatching mechanism. When using the other two mechanisms, this annotation does not need to be used (for example if you do not have access to all the used parameter classes).
  
-Code annotated in this way needs to be compiled with one of the annotation processors from the *Processor* project: `switch`, `reflection` or `visitor`. Each of them uses a different dispatch mechanism. This can be done by adding the `-processor` flag to the javac command or via maven compiler plugin (see Demo/pom.xml for an example).
+Code annotated in this way needs to be compiled with one of the annotation processors from the *Processor* project: `ProcessorSwitch`, `ProcessorReflection` or `ProcessorVisitor` that use three different dispatch mechanism. This can be done by adding the `-processor` flag to the javac command or via maven compiler plugin (see Demo/pom.xml for an example).
 
 
  ### Limitations
  
- The current version of the library requires JDK 8, because the implementation is compiler specific. Additionally, using simple types (int, double) as parameters in methods is not supported -- instead use their equivalent classes (Integer, Double) or wrap them in custom classes, if you wish to use the *visitor* dispatch. 
+ The current version of the library requires JDK 8, because the implementation is compiler specific. Additionally, using simple types (int, double, ...) as parameters in methods is not supported -- instead use their equivalent classes (Integer, Double, ...) or, if you wish to use the *visitor* dispatch, wrap them in custom classes. 

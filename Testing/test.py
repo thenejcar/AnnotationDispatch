@@ -12,13 +12,12 @@ def average(lst):
 
 
 class Tester:
-    def __init__(self, rounds, compile_rounds, processors):
+    def __init__(self, rounds, compile_rounds, processors, test_types):
         self.rounds = rounds
         self.compile_rounds = compile_rounds
 
         self.processors = processors
-        self.test_types = ["Parameters", "Classes", "ClassesWidth", "Methods", "Instances",  "ParametersVoid", "ClassesVoid", "MethodsVoid", "InstancesVoid"]
-        #self.test_types = ["ClassesWidth"]
+        self.test_types = test_types
         self.ranges = {
             'Parameters': [1, 2, 3, 5, 10, 15, 20],
             'ParametersVoid': [1, 2, 3, 5, 10, 15, 20],
@@ -71,12 +70,10 @@ class Tester:
         self.marker = '.'
 
     def compile(self):
-        print("cd ../")
-        os.chdir("../")
         subprocess.run(["java", "-classpath", "target/classes/", "si.kisek.annotationdispatchtesting.GenerateTestCases"])
 
-        print("cd speedtest/")
-        os.chdir("speedtest/")
+        print("cd generated-tests/")
+        os.chdir("generated-tests/")
 
         print("mvn -q clean")
         subprocess.run(["mvn", "-q", "clean"])
@@ -108,6 +105,8 @@ class Tester:
                     print("Moving", len(files), "files to " + "classes-" + proc + "/")
                     for file in files:
                         os.rename("target/classes/" + file, "classes-" + proc + "/" + file)
+        print("cd ../")
+        os.chdir("../")
 
     def write_compile_times(self):
         print("compile times:")
@@ -141,6 +140,8 @@ class Tester:
                 self.compile_times[proc][test][num] = [float(x) for x in times]
 
     def runTest(self):
+        print("cd generated-tests/")
+        os.chdir("generated-tests/")
         for i in range(0, self.rounds):
             print("Test run", i)
             for processor in self.processors:
@@ -163,6 +164,8 @@ class Tester:
                         print("%20d" % time)
                 os.chdir("../")
 
+        print("cd ../")
+        os.chdir("../")
 
     def write_results(self):
         print("results:")
@@ -329,7 +332,7 @@ class Tester:
 
             plt.legend(handles=legend)
             plt.draw()
-            fig.savefig('figures/speedtest' + t + 'Both.pdf', bbox_inches='tight')
+            fig.savefig('figures/generated-tests' + t + 'Both.pdf', bbox_inches='tight')
 
     def plot_filesizes(self, includeVisitor=True):
         for t in self.test_types:
@@ -390,10 +393,16 @@ def filesize(proc, type, num):
 
 # main
 
+total_time = time.time()
+
+print("rebuilding the test generator...")
+print("mvn -q clean compile")
+subprocess.run(["mvn", "-q", "clean", "compile"])
+
 N = 5 # number of repeats per test case
 M = 5 # number of different generated test cases
 
-tester = Tester(N, M, ["visitor", "switch", "reflection", "unmodified"])
+tester = Tester(N, M, ["visitor", "switch", "reflection", "unmodified"], ["Parameters", "Classes", "ClassesWidth", "Methods", "Instances",  "ParametersVoid", "ClassesVoid", "MethodsVoid", "InstancesVoid"])
 
 ## clean the csv files
 with open('testing_results.csv', 'w') as file:
@@ -421,3 +430,7 @@ tester.plot_compile_times(False)
 
 tester.plot_filesizes()
 tester.plot_filesizes(False)
+
+
+total_time = time.time() - total_time
+print("Testing finished in", total_time / 60.0, "minutes.")

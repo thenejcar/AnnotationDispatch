@@ -5,6 +5,7 @@ import com.sun.tools.javac.model.JavacElements;
 import com.sun.tools.javac.model.JavacTypes;
 import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.TreeMaker;
+import com.sun.tools.javac.util.Name;
 import si.kisek.annotationdispatch.models.AcceptMethod;
 import si.kisek.annotationdispatch.models.MethodInstance;
 import si.kisek.annotationdispatch.models.MethodModel;
@@ -62,7 +63,9 @@ public class CodeGeneratorVisitor {
         this.visitableDecl = createStaticVisitableInterface();
         this.visitorDecl = createStaticVisitorClass();
         this.exceptionDecl = createExceptionClass();
+    }
 
+    public void fillVisitableAndVisitor() {
         // use the Visitable type in accept methods instead of the placeholder
         for (Type t : acceptMethods.keySet()) {
             Set<AcceptMethod> fixedMethods = new HashSet<>();
@@ -179,6 +182,17 @@ public class CodeGeneratorVisitor {
     }
 
     public void fillVisitorClass() {
+        if (!mm.isStatic()) {
+            // non-static visitor gets a variable of the this class
+            this.visitorDecl.defs = this.visitorDecl.defs.append(
+                    tm.VarDef(
+                            tm.Modifiers(Flags.PUBLIC),
+                            el.getName("receiver"),
+                            tm.Ident(mm.getParentClass().getSimpleName()),
+                            null)
+                    );
+        }
+
         Set<AcceptMethod> alreadyImplemented = new HashSet<>();
 
         for (Set<AcceptMethod> s : acceptMethods.values()) {
@@ -276,14 +290,21 @@ public class CodeGeneratorVisitor {
             methodDecl.params = javacList(methodParameters);
 
 
-            //TODO: support for nonstatic visitor
-
             // call to original method
-            JCTree.JCMethodInvocation call = tm.Apply(
-                    emptyExpr(),
-                    tm.Select(tm.Ident(mm.getParentClass().name), mm.getName()),
-                    javacList(callParameters)
-            );
+            JCTree.JCMethodInvocation call;
+            if (mm.isStatic()) {
+                call = tm.Apply(
+                        emptyExpr(),
+                        tm.Select(tm.Ident(mm.getParentClass().name), mm.getName()),
+                        javacList(callParameters)
+                );
+            } else {
+                call = tm.Apply(
+                        emptyExpr(),
+                        tm.Select(tm.Ident(el.getName("receiver")), mm.getName()),
+                        javacList(callParameters)
+                );
+            }
 
             List<JCTree.JCStatement> returnBlock = new ArrayList<>();
             if (mm.isVoid()) {
@@ -540,7 +561,7 @@ public class CodeGeneratorVisitor {
 
     public JCTree.JCMethodDecl createVisitorInitMethod() {
         JCTree.JCMethodDecl methodDecl = tm.MethodDef(
-                tm.Modifiers(Flags.PUBLIC | Flags.STATIC),
+                tm.Modifiers(mm.getModifiers().flags),
                 el.getName("dispatch_" + mm.getRandomness()),
                 mm.getReturnValue(),
                 com.sun.tools.javac.util.List.from(new JCTree.JCTypeParameter[0]),
@@ -560,14 +581,35 @@ public class CodeGeneratorVisitor {
         }
         methodDecl.params = javacList(params);
 
+        Name visitorInstance = el.getName("visitorInstance");
+
+        List<JCTree.JCStatement> methodBody = new ArrayList<>();
+        // instantiate the visitor
+        methodBody.add(tm.VarDef(
+                        tm.Modifiers(0),
+                        visitorInstance,
+                        tm.Ident(this.visitorDecl.getSimpleName()),
+                        tm.NewClass(
+                                null,
+                                emptyExpr(),
+                                tm.Ident(visitorDecl.name),
+                                emptyExpr(),
+                                null
+                        ))
+        );
+
+        if (!mm.isStatic()) {
+            // in non-static methods, pass 'this' to visitor
+            // visitor_instance.receiver = this;
+            methodBody.add(tm.Exec(tm.Assign(
+                    tm.Select(tm.Ident(visitorInstance), el.getName("receiver")),
+                    tm.Ident(el.getName("this"))
+            )));
+        }
+
+        // create the parameters for the first accept method and call it
         List<JCTree.JCExpression> callParameters = new ArrayList<>();
-        callParameters.add(tm.NewClass(
-                null,
-                emptyExpr(),
-                tm.Ident(visitorDecl.name),
-                emptyExpr(),
-                null
-        ));
+        callParameters.add(tm.Ident(visitorInstance));
         ListIterator<JCTree.JCVariableDecl> iter = params.listIterator();
         iter.next();
         while (iter.hasNext()) {
@@ -579,11 +621,13 @@ public class CodeGeneratorVisitor {
                 tm.Select(tm.Ident(params.get(0).name), el.getName("accept1")),
                 javacList(callParameters)
         );
-
         if (mm.isVoid())
-            methodDecl.body = tm.Block(0, asJavacList(tm.Exec(acceptCall)));
+            methodBody.add(tm.Exec(acceptCall));
         else
-            methodDecl.body = tm.Block(0, asJavacList(tm.Return(acceptCall)));
+            methodBody.add(tm.Return(acceptCall));
+
+
+        methodDecl.body = tm.Block(0, javacList(methodBody));
 
         mm.getParentClass().defs = mm.getParentClass().defs.append(methodDecl);
         Utils.addSymbolToClass(mm.getParentClass(), createSymbolForMethod(methodDecl, mm.getParentClass().sym));

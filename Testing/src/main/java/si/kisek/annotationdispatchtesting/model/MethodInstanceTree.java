@@ -1,10 +1,6 @@
 package si.kisek.annotationdispatchtesting.model;
 
-import com.sun.tools.javac.code.Type;
-
 import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class MethodInstanceTree {
 

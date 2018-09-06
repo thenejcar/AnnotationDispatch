@@ -3,7 +3,6 @@ package si.kisek.annotationdispatchtesting.model;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 /*
 * A tree of classes that can be used for parameters

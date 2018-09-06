@@ -4,8 +4,6 @@ package si.kisek.annotationdispatch;
 import com.sun.source.tree.Tree;
 import com.sun.source.util.TreePath;
 import com.sun.source.util.Trees;
-import com.sun.tools.javac.code.Scope;
-import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Symtab;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.model.JavacElements;
@@ -16,7 +14,7 @@ import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.util.Name;
 import si.kisek.annotationdispatch.models.MethodInstance;
 import si.kisek.annotationdispatch.models.MethodModel;
-import si.kisek.annotationdispatch.utils.ReplaceMethodsVisitor;
+import si.kisek.annotationdispatch.utils.ReplaceMethodsTranslator;
 import si.kisek.annotationdispatch.utils.Utils;
 
 import javax.annotation.processing.*;
@@ -104,10 +102,14 @@ public abstract class MultidispatchProcessor extends AbstractProcessor {
         return map;
     }
 
+    /*
+    * replaces calls to original method with calls to the new method
+    * be careful to call it BEFORE we generate our calls to the methods, or those will also be replaced
+    * */
     public void replaceMethodsInClass(MethodModel toReplace, JCTree.JCMethodDecl newMethod, JCTree.JCClassDecl targetClass) {
 
         for (MethodInstance oldMethod : originalMethods.get(toReplace)) {
-            ReplaceMethodsVisitor visitor = new ReplaceMethodsVisitor(oldMethod, newMethod.getName());
+            ReplaceMethodsTranslator visitor = new ReplaceMethodsTranslator(oldMethod, newMethod.getName());
             visitor.visitClassDef(targetClass);
         }
 

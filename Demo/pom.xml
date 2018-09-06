@@ -6,7 +6,7 @@
 
     <groupId>si.kisek.annotationdispatch</groupId>
     <artifactId>Demo</artifactId>
-    <version>0.9</version>
+    <version>1.0</version>
     <build>
         <plugins>
             <plugin>

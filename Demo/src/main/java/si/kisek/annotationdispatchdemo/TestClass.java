@@ -27,8 +27,8 @@ public class TestClass {
         Tree pineTree = new Pine();
         Tree appleTree = new Apple();
 
-        climbing(cat, dog, tree);
-        climbing(animal, animal, tree);
+        TestClass.climbing(cat, dog, tree);
+        TestClass.climbing(animal, animal, tree);
         climbing(cat, cat, oakTree);
         climbing(lizard, dog, appleTree);
         climbing(dog, lizard, pineTree);

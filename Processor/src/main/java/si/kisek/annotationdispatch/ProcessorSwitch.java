@@ -48,9 +48,13 @@ public class ProcessorSwitch extends MultidispatchProcessor {
             return true;
         }
 
+        // create the new methods
         generateNewMethods(roundEnv);
+
+        // replace all calls with calls to our methods
         replaceMethodCalls(roundEnv);
 
+        // add the new methods into classes
         addNewMethods();
 
         return true;
@@ -94,8 +98,6 @@ public class ProcessorSwitch extends MultidispatchProcessor {
     }
 
     private void replaceMethodCalls(RoundEnvironment roundEnv) {
-        //TODO: check if we really need the class annotation, maybe we can find all places where annotated methods were called?
-
         for (MethodModel mm : originalMethods.keySet()) {
             for (Element e : roundEnv.getElementsAnnotatedWith(MultiDispatchClass.class)) {
                 JCTree.JCClassDecl classDecl = (JCTree.JCClassDecl) trees.getPath(e).getLeaf();
