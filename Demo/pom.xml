@@ -27,7 +27,7 @@
 
     <profiles>
         <profile>
-            <id>annotation-processing-switch</id>
+            <id>annotation-processing-tree</id>
             <build>
                 <plugins>
                     <plugin>
@@ -40,7 +40,7 @@
                             <source>1.8</source>
                             <target>1.8</target>
                             <annotationProcessors>
-                                <annotationProcessor>si.kisek.annotationdispatch.ProcessorSwitch</annotationProcessor>
+                                <annotationProcessor>si.kisek.annotationdispatch.ProcessorTree</annotationProcessor>
                             </annotationProcessors>
                         </configuration>
                     </plugin>

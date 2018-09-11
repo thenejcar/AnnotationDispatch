@@ -30,7 +30,7 @@ import static si.kisek.annotationdispatch.utils.Utils.javacList;
         "si.kisek.annotationdispatch.MultiDispatchVisitable"
 })
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
-public class ProcessorSwitch extends MultidispatchProcessor {
+public class ProcessorTree extends MultidispatchProcessor {
 
     private Map<MethodModel, JCTree.JCMethodDecl> generatedMethods = new HashMap<>();
 

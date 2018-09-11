@@ -26,7 +26,7 @@ Directory **Annotations/** contains the annotations that need to be added to the
  - `@MultiDispatchClass` should be places on all classes where the annotated methods will be used. If the methods are used in a class that is not annotated with this annotation, they will behave in a regular Java way.
  - `@MultiDispatchVisitable` should be placed on all classes that are used as parameters in dispatched methods, if you want to use the *visitor* dispatching mechanism. When using the other two mechanisms, this annotation does not need to be used (for example if you do not have access to all the used parameter classes).
  
-Code annotated in this way needs to be compiled with one of the annotation processors from the *Processor* project: `ProcessorSwitch`, `ProcessorReflection` or `ProcessorVisitor` that use three different dispatch mechanism. This can be done by adding the `-processor` flag to the javac command or via maven compiler plugin (see Demo/pom.xml for an example).
+Code annotated in this way needs to be compiled with one of the annotation processors from the *Processor* project: `ProcessorTree`, `ProcessorReflection` or `ProcessorVisitor` that use three different dispatch mechanism. This can be done by adding the `-processor` flag to the javac command or via maven compiler plugin (see `Demo/pom.xml` for an example).
 
 
  ### Limitations

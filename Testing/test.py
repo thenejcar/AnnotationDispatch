@@ -6,6 +6,7 @@ import glob
 
 from matplotlib import pyplot as plt
 from matplotlib import patches as mpatches
+from matplotlib.ticker import MaxNLocator
 
 def average(lst):
     return sum(lst) / len(lst)
@@ -208,6 +209,7 @@ class Tester:
             #fig.suptitle("Speedtest comparison by number of " + t)
             ax = fig.add_subplot(111)
             ax.set_xlabel(self.naslov[t])
+            ax.xaxis.set_major_locator(MaxNLocator(integer=True))
             ax.set_ylabel('Čas izvajanja [ms]')
             ax.grid(which='major', linestyle='-')
             ax.grid(which='minor', linestyle=':')
@@ -227,19 +229,19 @@ class Tester:
                     else:
                         labela = "Obiskovalec"
                         c = 'r'
-                elif (proc == 'switch'):
+                elif (proc == 'tree'):
                     labela = "Odločitevno drevo"
                     c = 'g'
                 elif (proc == 'reflection'):
-                    labela = "Refleksija"
+                    labela = "Odsevnost"
                     c = 'b'
                 else:
                     labela = proc
                     c = 'k'
 
                 for num in self.ranges[t]:
-                    ax.scatter([num] * self.rounds * self.compile_rounds, [(i / 1e6) for i in self.results[proc][t][num]], marker=self.marker, color=c)
-                ax.plot(self.ranges[t], [average(self.results[proc][t][x]) / 1e6 for x in self.ranges[t]], '-', color=c)
+                    ax.scatter([num] * self.rounds * self.compile_rounds, [(i / 1e9) for i in self.results[proc][t][num]], marker=self.marker, color=c)
+                ax.plot(self.ranges[t], [average(self.results[proc][t][x]) / 1e9 for x in self.ranges[t]], '-', color=c)
                 legend.append(mpatches.Patch(color=c, label=labela))
 
             plt.legend(handles=legend)
@@ -257,6 +259,7 @@ class Tester:
             #fig.suptitle("Compile time comparison by number of " + t)
             ax = fig.add_subplot(111)
             ax.set_xlabel(self.naslov[t])
+            ax.xaxis.set_major_locator(MaxNLocator(integer=True))
             ax.set_ylabel('Čas prevajanja [s]')
             ax.grid(which='major', linestyle='-')
             ax.grid(which='minor', linestyle=':')
@@ -277,11 +280,11 @@ class Tester:
                     else:
                         labela = "Obiskovalec"
                         c = 'r'
-                elif (proc == 'switch'):
+                elif (proc == 'tree'):
                     labela = "Odločitevno drevo"
                     c = 'g'
                 elif (proc == 'reflection'):
-                    labela = "Refleksija"
+                    labela = "Odsevnost"
                     c = 'b'
                 else:
                     labela = proc
@@ -300,8 +303,6 @@ class Tester:
                 fig.savefig('figures/compileTime' + t + 'NoVisitor.pdf', bbox_inches='tight')
 
     def combined_parameters_plot(self):
-
-
         for t in ["Parameters", "Classes", "Methods", "Instances"]:
 
             fig = plt.figure(figsize=(7, 7))
@@ -309,6 +310,7 @@ class Tester:
             ax = fig.add_subplot(111)
             #ax.set_xlabel('Number of Parameters')
             ax.set_xlabel(self.naslov[t])
+            ax.xaxis.set_major_locator(MaxNLocator(integer=True))
             #ax.set_ylabel('Compile time [s]')
             ax.set_ylabel('Čas izvajanja [s]')
             ax.grid(which='major', linestyle='-')
@@ -321,18 +323,18 @@ class Tester:
             c2 = '#800000'
 
             for num in self.ranges[t]:
-                ax.scatter([num] * self.rounds * self.compile_rounds, [(i / 1e6) for i in self.results[proc][t][num]], marker=self.marker, color=c1)
-            ax.plot(self.ranges[t], [average(self.results[proc][t][x]) / 1e6 for x in self.ranges[t]], '-', color=c1)
+                ax.scatter([num] * self.rounds * self.compile_rounds, [(i / 1e9) for i in self.results[proc][t][num]], marker=self.marker, color=c1)
+            ax.plot(self.ranges[t], [average(self.results[proc][t][x]) / 1e9 for x in self.ranges[t]], '-', color=c1)
             legend.append(mpatches.Patch(color=c1, label="Obiskovalec"))
 
             for num in self.ranges[t+"Void"]:
-                ax.scatter([num] * self.rounds * self.compile_rounds, [(i / 1e6) for i in self.results[proc][t+"Void"][num]], marker=self.marker, color=c2)
-            ax.plot(self.ranges[t+"Void"], [average(self.results[proc][t+"Void"][x]) / 1e6 for x in self.ranges[t+"Void"]], '-', color=c2)
+                ax.scatter([num] * self.rounds * self.compile_rounds, [(i / 1e9) for i in self.results[proc][t+"Void"][num]], marker=self.marker, color=c2)
+            ax.plot(self.ranges[t+"Void"], [average(self.results[proc][t+"Void"][x]) / 1e9 for x in self.ranges[t+"Void"]], '-', color=c2)
             legend.append(mpatches.Patch(color=c2, label="Obiskovalec (void)"))
 
             plt.legend(handles=legend)
             plt.draw()
-            fig.savefig('figures/generated-tests' + t + 'Both.pdf', bbox_inches='tight')
+            fig.savefig('figures/speedtest' + t + 'Both.pdf', bbox_inches='tight')
 
     def plot_filesizes(self, includeVisitor=True):
         for t in self.test_types:
@@ -361,11 +363,11 @@ class Tester:
                     else:
                         labela = "Obiskovalec"
                         c = 'r'
-                elif (proc == 'switch'):
+                elif (proc == 'tree'):
                     labela = "Odločitevno drevo"
                     c = 'g'
                 elif (proc == 'reflection'):
-                    labela = "Refleksija"
+                    labela = "Odsevnost"
                     c = 'b'
                 else:
                     labela = proc
@@ -374,7 +376,7 @@ class Tester:
                 print("Sizes:", sizes)
 
                 ax.plot(self.ranges[t], sizes, '-', color=c)
-                legend.append(mpatches.Patch(color=c, label=proc))
+                legend.append(mpatches.Patch(color=c, label=labela))
 
             plt.legend(handles=legend)
             plt.draw()
@@ -386,8 +388,8 @@ class Tester:
 
 def filesize(proc, type, num):
     s = 0
-    s += os.path.getsize("classes-" + proc + "/" + type + str(num)  + ".class")
-    for file in glob.glob("classes-" + proc + "/" + type + str(num)  + "$*"):
+    s += os.path.getsize("generated-tests/classes-" + proc + "/" + type + str(num)  + ".class")
+    for file in glob.glob("generated-tests/classes-" + proc + "/" + type + str(num)  + "$*"):
         s += os.path.getsize(file)
     return s / 1e6
 
@@ -402,7 +404,7 @@ subprocess.run(["mvn", "-q", "clean", "compile"])
 N = 5 # number of repeats per test case
 M = 5 # number of different generated test cases
 
-tester = Tester(N, M, ["visitor", "switch", "reflection", "unmodified"], ["Parameters", "Classes", "ClassesWidth", "Methods", "Instances",  "ParametersVoid", "ClassesVoid", "MethodsVoid", "InstancesVoid"])
+tester = Tester(N, M, ["visitor", "tree", "reflection", "unmodified"], ["Parameters", "Classes", "ClassesWidth", "Methods", "Instances",  "ParametersVoid", "ClassesVoid", "MethodsVoid", "InstancesVoid"])
 
 ## clean the csv files
 with open('testing_results.csv', 'w') as file:

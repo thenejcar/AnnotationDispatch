@@ -10,7 +10,7 @@ echo
 echo "Starting the compilation in debug mode (annotation-processing-switch profile)"
 echo "get the debugger ready..."
 echo
-mvnDebug -Pannotation-processing-switch -e -X clean compile
+mvnDebug -Pannotation-processing-tree -e -X clean compile
 
 echo
 echo "Compilation done, running the compiled TestClass"

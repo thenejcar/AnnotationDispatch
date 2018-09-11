@@ -26,9 +26,9 @@ echo "--------------------------------------------------------------------------
 
 echo
 #build the demo program with annotation processing and run it
-echo "TestClass with multiple dispatch (switch):"
+echo "TestClass with multiple dispatch (tree):"
 cd ../../
-mvn -Pannotation-processing-switch -q clean compile
+mvn -Pannotation-processing-tree -q clean compile
 cd ./target/classes
 echo "----------------------------------------------------------------------------"
 java si.kisek.annotationdispatchdemo.TestClass
