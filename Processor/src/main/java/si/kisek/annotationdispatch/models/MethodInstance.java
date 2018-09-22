@@ -5,6 +5,9 @@ import com.sun.tools.javac.code.Type;
 import java.util.List;
 import java.util.Objects;
 
+/*
+* Represents a method instance -- a specific annotated method. Defined by the method model and the types of parameters
+* */
 public class MethodInstance{
 
     private MethodModel mm;

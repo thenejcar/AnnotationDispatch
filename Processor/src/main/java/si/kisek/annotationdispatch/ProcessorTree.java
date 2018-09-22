@@ -7,7 +7,7 @@ import com.sun.tools.javac.tree.JCTree;
 import si.kisek.annotationdispatch.models.MethodInstance;
 import si.kisek.annotationdispatch.models.MethodModel;
 import si.kisek.annotationdispatch.models.MethodSwitcher;
-import si.kisek.annotationdispatch.utils.CodeGeneratorSwitch;
+import si.kisek.annotationdispatch.utils.CodeGeneratorTree;
 import si.kisek.annotationdispatch.utils.Utils;
 
 import javax.annotation.processing.*;
@@ -37,10 +37,12 @@ public class ProcessorTree extends MultidispatchProcessor {
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
 
-        if (originalMethods.size() > 0) {
-            // already processed, skip
-            return false;
+        if (roundEnv.processingOver()) {
+            msg.printMessage(Diagnostic.Kind.NOTE, "Processing done");
+            return true;
         }
+
+        msg.printMessage(Diagnostic.Kind.NOTE, "Processing round started");
 
         originalMethods = super.processAnnotatedMethods(roundEnv);
         if (originalMethods.size() == 0) {
@@ -51,10 +53,10 @@ public class ProcessorTree extends MultidispatchProcessor {
         // create the new methods
         generateNewMethods(roundEnv);
 
-        // replace all calls with calls to our methods
+        // replace all calls with calls to the new dispatch methods methods
         replaceMethodCalls(roundEnv);
 
-        // add the new methods into classes
+        // add the new methods into the classes
         addNewMethods();
 
         return true;
@@ -65,20 +67,21 @@ public class ProcessorTree extends MultidispatchProcessor {
      * */
     private void generateNewMethods(RoundEnvironment roundEnv) {
         if (originalMethods == null) {
-            throw new RuntimeException("Cannot start the second pass if methods map is null");
+            throw new RuntimeException("The method map not initialised, cannot generate dispatch methods");
         }
 
         generatedMethods = new HashMap<>();
 
-        // generate the switcher
+        // generate the tree for each method model
         for (MethodModel model : originalMethods.keySet()) {
 
             JCTree.JCMethodDecl generatedMethod = model.generateDispatchMethod(tm, elements);
             Set<MethodInstance> instances = originalMethods.get(model);
 
+            // method switcher is the tree structure that defines the shape of our final dispatch method
             MethodSwitcher methodSwitcher = new MethodSwitcher(super.types, model, instances);
 
-            CodeGeneratorSwitch codeGenerator = new CodeGeneratorSwitch(tm, elements, generatedMethod);
+            CodeGeneratorTree codeGenerator = new CodeGeneratorTree(tm, elements, generatedMethod);
             List<JCTree.JCStatement> statements = new ArrayList<>();
             statements.add(codeGenerator.generateIfInstanceOf(methodSwitcher.getRoot()));
 
@@ -92,7 +95,7 @@ public class ProcessorTree extends MultidispatchProcessor {
 
             generatedMethods.put(model, generatedMethod);
 
-            processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "Method " + generatedMethod.name.toString() + " generated");
+            msg.printMessage(Diagnostic.Kind.NOTE, "Method " + generatedMethod.name.toString() + " generated");
 
         }
     }
@@ -101,9 +104,7 @@ public class ProcessorTree extends MultidispatchProcessor {
         for (MethodModel mm : originalMethods.keySet()) {
             for (Element e : roundEnv.getElementsAnnotatedWith(MultiDispatchClass.class)) {
                 JCTree.JCClassDecl classDecl = (JCTree.JCClassDecl) trees.getPath(e).getLeaf();
-                if (classDecl == mm.getParentClass()) {
-                    super.replaceMethodsInClass(mm, generatedMethods.get(mm), classDecl);
-                }
+                super.replaceMethodsInClass(mm, generatedMethods.get(mm), classDecl);
             }
         }
     }
@@ -134,7 +135,7 @@ public class ProcessorTree extends MultidispatchProcessor {
             // use reflection to add the generated method symbol to the parent class
             Utils.addSymbolToClass(classDecl, methodSymbol);
 
-            processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "Method " + generatedMethod.name + " added to " + classDecl.name);
+            msg.printMessage(Diagnostic.Kind.NOTE, "Method " + generatedMethod.name + " added to " + classDecl.name);
         }
     }
 }

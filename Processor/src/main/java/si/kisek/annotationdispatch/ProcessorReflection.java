@@ -39,10 +39,12 @@ public class ProcessorReflection extends MultidispatchProcessor {
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
 
-        if (originalMethods.size() > 0) {
-            // already processed, skip
-            return false;
+        if (roundEnv.processingOver()) {
+            msg.printMessage(Diagnostic.Kind.NOTE, "Processing done");
+            return true;
         }
+
+        msg.printMessage(Diagnostic.Kind.NOTE, "Processing round started");
 
         originalMethods = super.processAnnotatedMethods(roundEnv);
         if (originalMethods.size() == 0) {
@@ -50,6 +52,8 @@ public class ProcessorReflection extends MultidispatchProcessor {
             return true;
         }
 
+        // split the originamMethods into multiple maps, according to which class the method definition is in
+        // and find the JCComplicationUnit for each of the parent classes
         Map<JCTree.JCClassDecl, Map<MethodModel, Set<MethodInstance>>> splitMethodModels = new HashMap<>();
         Map<JCTree.JCClassDecl, JCTree.JCCompilationUnit> elements = new HashMap<>();
         for (MethodModel mm : originalMethods.keySet()) {
@@ -67,25 +71,25 @@ public class ProcessorReflection extends MultidispatchProcessor {
             Map<MethodModel, Set<MethodInstance>> partialMap = splitMethodModels.get(parent);
             CodeGeneratorReflection generator = new CodeGeneratorReflection(tm, this.elements, types, symtab, partialMap);
 
+            // generate the init method, the map where method references will be stored and a dispatcher for each methodModel
             JCTree.JCMethodDecl initMethod = generator.generateInitMethod();
             JCTree.JCVariableDecl methodMap = generator.generateMethodMapDecl();
             Map<MethodModel, JCTree.JCMethodDecl> dispatchers = generator.generateDispatchers();
             generatedMethods.putAll(dispatchers);
 
-//            // add the init logic to the constructors
-//            addInitLogicToClass(parent, initMethod);
-
-            // fill the symtables
+            // add the statements to class and fill the symtables
             addNewField(parent, methodMap);
             addNewMethod(parent, initMethod);
             dispatchers.values().forEach(dispatcher -> addNewMethod(parent, dispatcher));
 
-            super.addImports(elements.get(parent), Arrays.asList(
+            // import java.util.*;
+            // import java.lang.reflect.*;
+            Utils.addImports(elements.get(parent), Arrays.asList(
                     tm.Import(tm.Select(tm.Select(tm.Ident(this.elements.getName("java")), this.elements.getName("util")), this.elements.getName("*")), false),
                     tm.Import(tm.Select(tm.Select(tm.Select(tm.Ident(this.elements.getName("java")), this.elements.getName("lang")), this.elements.getName("reflect")), this.elements.getName("*")), false)
             ));
 
-            processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "Inserted new code into " + parent.name.toString());
+            msg.printMessage(Diagnostic.Kind.NOTE, "Inserted new code into " + parent.name.toString());
         }
 
         // replace all calls with calls to the dispatcher
@@ -102,28 +106,10 @@ public class ProcessorReflection extends MultidispatchProcessor {
         for (MethodModel mm : originalMethods.keySet()) {
             for (Element e : roundEnv.getElementsAnnotatedWith(MultiDispatchClass.class)) {
                 JCTree.JCClassDecl classDecl = (JCTree.JCClassDecl) trees.getPath(e).getLeaf();
-                if (classDecl == mm.getParentClass())
                 super.replaceMethodsInClass(mm, generatedMethods.get(mm), classDecl);
             }
         }
     }
-
-//    /*
-//     * Add the var decl to class and call init method in all constructors
-//     * */
-//    private void addInitLogicToClass(JCTree.JCClassDecl parentClass, JCTree.JCMethodDecl initMethod) {
-//        for (JCTree def : parentClass.defs) {
-//            if (def instanceof JCTree.JCMethodDecl) {
-//                JCTree.JCMethodDecl constructor = (JCTree.JCMethodDecl) def;
-//                if ("<init>".equals(((JCTree.JCMethodDecl) def).getName().toString()))
-//                    // add the method call to end of the constructor
-//                    constructor.body.stats = constructor.body.stats.append(
-//                            tm.Exec(tm.Apply(emptyExpr(), tm.Ident(initMethod.getName()), emptyExpr()))
-//                    );
-//            }
-//        }
-//    }
-
 
     /*
      * Inject generated method in the parent class of the original ones
@@ -149,7 +135,7 @@ public class ProcessorReflection extends MultidispatchProcessor {
         // use reflection to add the generated method symbol to the parent class
         Utils.addSymbolToClass(classDecl, methodSymbol);
 
-        processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "Method " + generatedMethod.name + " added to " + classDecl.name);
+        msg.printMessage(Diagnostic.Kind.NOTE, "Method " + generatedMethod.name + " added to " + classDecl.name);
     }
 
     private void addNewField(JCTree.JCClassDecl classDecl, JCTree.JCVariableDecl generatedVar) {
@@ -165,7 +151,7 @@ public class ProcessorReflection extends MultidispatchProcessor {
         // use reflection to add the generated method symbol to the parent class
         Utils.addSymbolToClass(classDecl, varSymbol);
 
-        processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "Variable " + generatedVar.name + " added to " + classDecl.name);
+        msg.printMessage(Diagnostic.Kind.NOTE, "Variable " + generatedVar.name + " added to " + classDecl.name);
     }
 
 }

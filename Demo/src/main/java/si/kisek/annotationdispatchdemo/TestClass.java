@@ -4,8 +4,8 @@ package si.kisek.annotationdispatchdemo;
 import si.kisek.annotationdispatch.MultiDispatch;
 import si.kisek.annotationdispatch.MultiDispatchClass;
 import si.kisek.annotationdispatch.MultiDispatchVisitable;
-import java.lang.RuntimeException;
-//import si.kisek.annotationdispatchdemo.models.*;
+
+import si.kisek.annotationdispatchdemo.models.*;
 
 @MultiDispatchClass
 public class TestClass {
@@ -60,87 +60,83 @@ public class TestClass {
                 o1.describe(), o2.describe(), o3.whichTree()));
     }
 
+//
+//    @MultiDispatchVisitable
+//    public static class Animal {
+//        public String describe() {
+//            return "Animal";
+//        }
+//    }
+//
+//    @MultiDispatchVisitable
+//    public static class Apple extends Tree {
+//        @Override
+//        public String whichTree() {
+//            return "an apple tree";
+//        }
+//    }
+//
+//    @MultiDispatchVisitable
+//    public static class Cat extends Mammal {
+//        @Override
+//        public String describe() {
+//            return "Cat";
+//        }
+//    }
+//
+//    @MultiDispatchVisitable
+//    public static class Dog extends Mammal {
+//        @Override
+//        public String describe() {
+//            return "Dog";
+//        }
+//    }
+//
+//    @MultiDispatchVisitable
+//    public static class Lizard extends Reptile {
+//        @Override
+//        public String describe() {
+//            return "Lizard";
+//        }
+//    }
+//
+//    @MultiDispatchVisitable
+//    public static class Mammal extends Animal {
+//        @Override
+//        public String describe() {
+//            return "Mammal";
+//        }
+//    }
+//
+//    @MultiDispatchVisitable
+//    public static class Oak extends Tree {
+//        @Override
+//        public String whichTree() {
+//            return "an oak tree";
+//        }
+//    }
+//
+//    @MultiDispatchVisitable
+//    public static class Pine extends Tree {
+//        @Override
+//        public String whichTree() {
+//            return "a pine tree";
+//        }
+//    }
+//
+//    @MultiDispatchVisitable
+//    public static class Reptile extends Animal {
+//        @Override
+//        public String describe() {
+//            return "Reptile";
+//        }
+//    }
+//
+//    @MultiDispatchVisitable
+//    public static class Tree {
+//        public String whichTree() {
+//            return "a tree";
+//        }
+//    }
 
-    @MultiDispatchVisitable
-    public static class Animal {
-        public String describe() {
-            return "Animal";
-        }
-    }
-
-    @MultiDispatchVisitable
-    public static class Apple extends Tree {
-        @Override
-        public String whichTree() {
-            return "an apple tree";
-        }
-    }
-
-    @MultiDispatchVisitable
-    public static class Cat extends Mammal {
-        @Override
-        public String describe() {
-            return "Cat";
-        }
-    }
-
-    @MultiDispatchVisitable
-    public static class Dog extends Mammal {
-        @Override
-        public String describe() {
-            return "Dog";
-        }
-    }
-
-    @MultiDispatchVisitable
-    public static class Lizard extends Reptile {
-        @Override
-        public String describe() {
-            return "Lizard";
-        }
-    }
-
-    @MultiDispatchVisitable
-    public static class Mammal extends Animal {
-        @Override
-        public String describe() {
-            return "Mammal";
-        }
-    }
-
-    @MultiDispatchVisitable
-    public static class Oak extends Tree {
-        @Override
-        public String whichTree() {
-            return "an oak tree";
-        }
-    }
-
-    @MultiDispatchVisitable
-    public static class Pine extends Tree {
-        @Override
-        public String whichTree() {
-            return "a pine tree";
-        }
-    }
-
-    @MultiDispatchVisitable
-    public static class Reptile extends Animal {
-        @Override
-        public String describe() {
-            return "Reptile";
-        }
-    }
-
-    @MultiDispatchVisitable
-    public static class Tree {
-        public String whichTree() {
-            return "a tree";
-        }
-    }
-
-
-    private static boolean giveMeTrue() {
-        return true;
-    }
 }

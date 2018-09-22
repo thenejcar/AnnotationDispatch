@@ -60,10 +60,10 @@ class Tester:
         self.naslov = {
             "Parameters": "Število parametrov",
             "ParametersVoid": "Število parametrov",
-            "Methods": "Število metod",
-            "MethodsVoid": "Število metod",
-            "Instances": "Število instanc",
-            "InstancesVoid": "Število instanc",
+            "Methods": "Število modelov",
+            "MethodsVoid": "Število modelov",
+            "Instances": "Število primerkov metod",
+            "InstancesVoid": "Število primerkov metod",
             "Classes": "Globina razredne hierarhije",
             "ClassesVoid": "Globina razredne hierarhije",
             "ClassesWidth": "Širina razredne hierarhije"
@@ -210,7 +210,7 @@ class Tester:
             ax = fig.add_subplot(111)
             ax.set_xlabel(self.naslov[t])
             ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-            ax.set_ylabel('Čas izvajanja [ms]')
+            ax.set_ylabel('Čas izvajanja [s]')
             ax.grid(which='major', linestyle='-')
             ax.grid(which='minor', linestyle=':')
 

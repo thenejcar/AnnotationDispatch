@@ -10,12 +10,11 @@ import si.kisek.annotationdispatch.models.AcceptMethod;
 import si.kisek.annotationdispatch.models.MethodInstance;
 import si.kisek.annotationdispatch.models.MethodModel;
 
+import javax.annotation.processing.Messager;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static si.kisek.annotationdispatch.utils.Utils.asJavacList;
-import static si.kisek.annotationdispatch.utils.Utils.emptyExpr;
-import static si.kisek.annotationdispatch.utils.Utils.javacList;
+import static si.kisek.annotationdispatch.utils.Utils.*;
 
 public class CodeGeneratorVisitor {
 
@@ -90,7 +89,7 @@ public class CodeGeneratorVisitor {
 
     /*
      * Creates an empty static interface Visitable inside the parent class
-     * body will be created in another method
+     * body will be created in fillVisitableInterface() method
      * */
     public JCTree.JCClassDecl createStaticVisitableInterface() {
         JCTree.JCClassDecl newClass = tm.ClassDef(
@@ -154,7 +153,7 @@ public class CodeGeneratorVisitor {
 
     /*
      * Creates an empty  static class Visitor inside the parent class
-     * body will be created in another method
+     * body will be created in fillVisitorClass() method
      * */
     public JCTree.JCClassDecl createStaticVisitorClass() {
         JCTree.JCClassDecl newClass = tm.ClassDef(
@@ -183,7 +182,7 @@ public class CodeGeneratorVisitor {
 
     public void fillVisitorClass() {
         if (!mm.isStatic()) {
-            // non-static visitor gets a variable of the this class
+            // non-static visitor gets a variable of the 'this' class
             this.visitorDecl.defs = this.visitorDecl.defs.append(
                     tm.VarDef(
                             tm.Modifiers(Flags.PUBLIC),
@@ -197,7 +196,8 @@ public class CodeGeneratorVisitor {
 
         for (Set<AcceptMethod> s : acceptMethods.values()) {
             for (AcceptMethod am : s) {
-                // skip the acceptMethods with no undefined parameters -- those are added separately
+                // skip the already implemented methods (some entries in the hashMap can be duplicates)
+                // also skip the accept methods with no undefined parameters -- those are added separately
                 if (alreadyImplemented.contains(am) || am.getDefinedParameters().size() < 1)
                     continue;
                 else
@@ -214,7 +214,7 @@ public class CodeGeneratorVisitor {
                         null                           // no default value
                 );
 
-                // parameters: defined then undefined
+                // parameters: first defined then undefined
                 List<JCTree.JCVariableDecl> parameters = new ArrayList<>();
                 parameters.addAll(am.getDefinedParameters());
 
@@ -233,7 +233,7 @@ public class CodeGeneratorVisitor {
 
                 JCTree.JCExpression call;
 
-                // body: for regular visit-accept calls
+                // body: for regular visit-accept calls we just call the accept method one level above
                 List<JCTree.JCExpression> callParameters = new ArrayList<>();
                 callParameters.add(tm.Ident(el.getName("this")));
                 for (JCTree.JCVariableDecl paramDecl : am.getDefinedParameters()) {
@@ -259,6 +259,7 @@ public class CodeGeneratorVisitor {
             }
         }
 
+        // the last level visit methods are equivalent to the method instances
         for (MethodInstance mi : methodInstances) {
 
             JCTree.JCMethodDecl methodDecl = tm.MethodDef(
@@ -272,6 +273,7 @@ public class CodeGeneratorVisitor {
                     null                           // no default value
             );
 
+            // all parameters are defined
             List<JCTree.JCVariableDecl> methodParameters = new ArrayList<>();
             List<JCTree.JCExpression> callParameters = new ArrayList<>();
             int i = 0;
@@ -388,7 +390,7 @@ public class CodeGeneratorVisitor {
     }
 
 
-    public void modifyVisitableClass(JCTree.JCClassDecl classDecl, boolean isRootType) {
+    public void modifyVisitableClass(JCTree.JCClassDecl classDecl, boolean isRootType, JCTree.JCCompilationUnit compilationUnit) {
 
         if (!this.acceptMethods.containsKey(classDecl.sym.type)) {
             // class that is not used as a parameter can be left alone
@@ -553,11 +555,29 @@ public class CodeGeneratorVisitor {
         Utils.addSymbolToClass(classDecl, this.visitorDecl.sym);
         Utils.addSymbolToClass(classDecl, this.visitableDecl.sym);
 
+        Utils.addImports(compilationUnit, Arrays.asList(
+                tm.Import(fullNameToJCFieldAccess(this.visitableDecl.sym.fullname.toString().split("\\."), -1), false)
+        ));
+
         // also add the parent class of original methods
         Utils.addSymbolToClass(classDecl, mm.getParentClass().sym);
 
         //System.out.println("Visitable class " + classDecl.name + " modified.");
     }
+
+    /*
+     * Used for imports
+     * */
+    // tm.Select(tm.Select(tm.Ident(this.elements.getName("java")), this.elements.getName("util")), this.elements.getName("*"))
+    private JCTree.JCExpression fullNameToJCFieldAccess(String[] names, int index) {
+        if (names.length + index <= 0) {
+            return tm.Ident(el.getName(names[0]));
+        } else {
+            int end = names.length + index;
+            return tm.Select(fullNameToJCFieldAccess(names, index - 1), el.getName(names[end]));
+        }
+    }
+
 
     public JCTree.JCMethodDecl createVisitorInitMethod() {
         JCTree.JCMethodDecl methodDecl = tm.MethodDef(

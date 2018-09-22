@@ -23,16 +23,18 @@ import javax.lang.model.element.Element;
 import javax.tools.Diagnostic;
 import java.util.*;
 
-
+/*
+* Base processor that contains methods used by all three dispatch variants
+* */
 @SupportedAnnotationTypes({
-        "si.kisek.annotationdispatch.ExampleAnnotation",
         "si.kisek.annotationdispatch.MultiDispatch",
         "si.kisek.annotationdispatch.MultiDispatchClass",
-        "si.kisek.annotationdispatch.MultiDispatchVisitable",
-        "si.kisek.annotationdispatch.MultiDispatchVisitableBase"
+        "si.kisek.annotationdispatch.MultiDispatchVisitable"
 })
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 public abstract class MultidispatchProcessor extends AbstractProcessor {
+
+    Messager msg; // for errors and other output during annotation processing
 
     Trees trees;  // compiler's AST
     TreeMaker tm;  // used to add subtrees to compiler's AST
@@ -42,7 +44,9 @@ public abstract class MultidispatchProcessor extends AbstractProcessor {
 
     Map<MethodModel, Set<MethodInstance>> originalMethods = new HashMap<>();
 
-    //get the compiler trees
+    /*
+    * Initialize the classes that are used later (trees, treemaker, elements, ...)
+    * */
     @Override
     public void init(ProcessingEnvironment processingEnv) {
         super.init(processingEnv);
@@ -52,8 +56,10 @@ public abstract class MultidispatchProcessor extends AbstractProcessor {
             elements = (JavacElements) processingEnv.getElementUtils();
             types = (JavacTypes) processingEnv.getTypeUtils();
             symtab = Symtab.instance(((JavacProcessingEnvironment) processingEnv).getContext());
+            msg = processingEnv.getMessager();
         } else {
-            processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "You are not using a javac processing environment, throwing an exception");
+            // we only support the javac compiler
+            msg.printMessage(Diagnostic.Kind.ERROR, "You are not using a javac processing environment, throwing an exception");
             throw new RuntimeException("Annotation needs to be processed using javac");
         }
     }
@@ -106,21 +112,18 @@ public abstract class MultidispatchProcessor extends AbstractProcessor {
     * replaces calls to original method with calls to the new method
     * be careful to call it BEFORE we generate our calls to the methods, or those will also be replaced
     * */
-    public void replaceMethodsInClass(MethodModel toReplace, JCTree.JCMethodDecl newMethod, JCTree.JCClassDecl targetClass) {
-
+    protected void replaceMethodsInClass(MethodModel toReplace, JCTree.JCMethodDecl newMethod, JCTree.JCClassDecl targetClass) {
+        int replaced = 0;
         for (MethodInstance oldMethod : originalMethods.get(toReplace)) {
-            ReplaceMethodsTranslator visitor = new ReplaceMethodsTranslator(oldMethod, newMethod.getName());
-            visitor.visitClassDef(targetClass);
+            ReplaceMethodsTranslator translator = new ReplaceMethodsTranslator(oldMethod, newMethod.getName());
+            translator.visitClassDef(targetClass);
+            replaced += translator.counter;
         }
 
-        processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "Calls to " + toReplace.getName() + " in " + targetClass.name + " replaced with calls to " + newMethod.getName());
+        if (replaced == 0)
+            msg.printMessage(Diagnostic.Kind.NOTE, "No calls to '" + toReplace.getName() + "' in " + targetClass.name );
+        else
+            msg.printMessage(Diagnostic.Kind.NOTE, replaced + " calls to '" + toReplace.getName() + "' in '" + targetClass.name + "' replaced with calls to '" + newMethod.getName() + "'.");
 
-    }
-
-    public void addImports(JCTree.JCCompilationUnit compUnit, List<JCTree> imports) {
-        List<JCTree> defs = new ArrayList<>();
-        defs.addAll(imports);
-        defs.addAll(compUnit.defs);
-        compUnit.defs = Utils.javacList(defs);
     }
 }

@@ -42,6 +42,7 @@
                             <annotationProcessors>
                                 <annotationProcessor>si.kisek.annotationdispatch.ProcessorTree</annotationProcessor>
                             </annotationProcessors>
+                            <showWarnings>true</showWarnings>
                         </configuration>
                     </plugin>
                 </plugins>
@@ -56,7 +57,7 @@
                         <artifactId>maven-compiler-plugin</artifactId>
                         <version>3.6.2</version>
                         <configuration>
-                            <!--verbose>true</verbose-->
+                            <verbose>true</verbose>
                             <compilerVersion>1.8</compilerVersion>
                             <compilerArgument>-Xlint:all</compilerArgument>
                             <source>1.8</source>
@@ -64,6 +65,7 @@
                             <annotationProcessors>
                                 <annotationProcessor>si.kisek.annotationdispatch.ProcessorVisitor</annotationProcessor>
                             </annotationProcessors>
+                            <showWarnings>true</showWarnings>
                         </configuration>
                     </plugin>
                 </plugins>
@@ -86,6 +88,7 @@
                             <annotationProcessors>
                                 <annotationProcessor>si.kisek.annotationdispatch.ProcessorReflection</annotationProcessor>
                             </annotationProcessors>
+                            <showWarnings>true</showWarnings>
                         </configuration>
                     </plugin>
                 </plugins>

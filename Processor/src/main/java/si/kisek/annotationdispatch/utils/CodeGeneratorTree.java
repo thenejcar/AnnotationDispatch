@@ -13,17 +13,21 @@ import java.util.*;
 import static si.kisek.annotationdispatch.utils.Utils.javacList;
 import static si.kisek.annotationdispatch.utils.Utils.emptyExpr;
 
-public class CodeGeneratorSwitch {
+public class CodeGeneratorTree {
     private TreeMaker tm;
     private JavacElements el;
     private JCTree.JCMethodDecl generatedMethod;
 
-    public CodeGeneratorSwitch(TreeMaker tm, JavacElements el, JCTree.JCMethodDecl generatedMethod) {
+    public CodeGeneratorTree(TreeMaker tm, JavacElements el, JCTree.JCMethodDecl generatedMethod) {
         this.tm = tm;
         this.el = el;
         this.generatedMethod = generatedMethod;
     }
 
+    /*
+    * Generates a tree made of if-instanceof constructs
+    * with method instances in the leaves
+    * */
     public JCTree.JCStatement generateIfInstanceOf(MethodSwitcher.SwitcherNode parentnode) {
         if (parentnode.subtree != null) {
             // generate a list of if statements

@@ -6,16 +6,22 @@ import com.sun.tools.javac.util.Name;
 import si.kisek.annotationdispatch.models.MethodInstance;
 
 
+/*
+* The translator uses the inbuilt mechanisms to find and replace all the original methods with the new, generated ones
+* it simply looks for JCMethodInvocation statements and replaces the method name inside
+* */
 public class ReplaceMethodsTranslator extends TreeTranslator {
 
     private MethodInstance targetMethod;
     private Name replacementName;
+    public int counter;
 
     public ReplaceMethodsTranslator(MethodInstance targetMethod, Name replacementName) {
         this.targetMethod = targetMethod;
         this.replacementName = replacementName;
-    }
 
+        this.counter = 0;
+    }
 
     @Override
     public void visitApply(JCTree.JCMethodInvocation jcMethodInvocation) {
@@ -28,6 +34,7 @@ public class ReplaceMethodsTranslator extends TreeTranslator {
 
             if (methodIdent.name.equals(targetMethod.getMm().getName()) && jcMethodInvocation.args.size() == targetMethod.getParameters().size()) {
                 methodIdent.name = replacementName; // replace the name with the generated method
+                counter++;
             }
         } else if (jcMethodInvocation.meth instanceof JCTree.JCFieldAccess) {
             // non-static usages via this.XXXX or static usages via ClassName.XXXX
@@ -35,6 +42,7 @@ public class ReplaceMethodsTranslator extends TreeTranslator {
 
             if (fieldAccess.name.equals(targetMethod.getMm().getName()) && jcMethodInvocation.args.size() == targetMethod.getParameters().size()) {
                 fieldAccess.name = replacementName; // replace the name with the generated method
+                counter++;
             }
         }
 

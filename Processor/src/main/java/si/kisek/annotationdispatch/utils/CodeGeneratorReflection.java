@@ -46,6 +46,9 @@ public class CodeGeneratorReflection {
         return "init_" + randomness;
     }
 
+    /*
+    * The 'method table', which is a HashMap that can find a list of methods based on their name and number of parameters
+    * */
     public JCTree.JCVariableDecl generateMethodMapDecl() {
 
         // private static Map<String, Map<Integer, List<Method>>> methodMap_xxxx
@@ -72,6 +75,9 @@ public class CodeGeneratorReflection {
         );
     }
 
+    /*
+     * The method that initialises and fill the method table (methodMap)
+     * */
     public JCTree.JCMethodDecl generateInitMethod() {
         JCTree.JCMethodDecl initMethod = tm.MethodDef(
                 tm.Modifiers(Flags.PRIVATE | Flags.STATIC),
@@ -147,11 +153,14 @@ public class CodeGeneratorReflection {
                     null
             ));
 
+            // getting and adding methods is hardcoded in the correct order
+            // method instances are sorted in the same way as in the 'if-instanceof tree' dispatch method
+            // we build the if-instanceof tree, and then use DFS to get a flat list of method instances
             List<MethodInstance> sortedInstances = new MethodSwitcher(types, mm, originalMethods.get(mm)).getSortedInstances();
 
             for (MethodInstance instance : sortedInstances) {
                 // for each instance generate a call that looks like
-                //    methodIsntances.add(this.getClass().getMethod("mm_name", param1, param2, param3))
+                //    methodInstances.add(this.getClass().getMethod("mm_name", param1, param2, param3))
 
                 List<JCTree.JCExpression> callParameters = new ArrayList<>();
                 callParameters.add(tm.Literal(TypeTag.CLASS, mm.getName().toString()));
@@ -276,6 +285,8 @@ public class CodeGeneratorReflection {
 
     /*
      * Generate a dispatcher for each MethodModel
+     * the dispatcher will look for matching methods, checking them one by one
+     * they are already in the correct order (starting with most specific)
      * */
     public Map<MethodModel, JCTree.JCMethodDecl> generateDispatchers() {
 
@@ -288,8 +299,7 @@ public class CodeGeneratorReflection {
 
             List<JCTree.JCStatement> stats = new ArrayList<>();
 
-
-            // init call if not done yet
+            // if init call was not done performed yet, do it now
             stats.add(tm.If(
                     tm.Binary(JCTree.Tag.EQ, tm.Ident(el.getName(methodMapName())), tm.Literal(TypeTag.BOT, null)),
                     tm.Block(0, asJavacList(tm.Exec(tm.Apply(emptyExpr(), tm.Ident(el.getName(initMethodName())), emptyExpr())))),
@@ -362,11 +372,7 @@ public class CodeGeneratorReflection {
             } else {
                 invParams.add(tm.Ident(el.getName("this")));
             }
-//            invParams.add(tm.NewArray(
-//                    tm.Ident(el.getName("Object")),
-//                    emptyExpr(),
-//                    javacList(args.stream().map((arg) -> tm.Ident(arg.getName())).collect(Collectors.toList()))
-//            ));
+
             invParams.addAll(args.stream().map((arg) -> tm.Ident(arg.getName())).collect(Collectors.toList()));
 
             // void methods have different return code
@@ -468,7 +474,12 @@ public class CodeGeneratorReflection {
     }
 
     /*
-     * generate a chain of Binary() classes (recursively check that all args match candidate's parameter types)
+     * generate a chain of Binary() classes that look like
+     *     m.getParameterTypes()[0].isAssignableFrom(arg0.getClass()) &&
+     *     m.getParameterTypes()[1].isAssignableFrom(arg1.getClass()) &&
+     *     m.getParameterTypes()[2].isAssignableFrom(arg2.getClass())
+     *
+     * they are built recursively from the innermost check outwards
      * */
     private JCTree.JCExpression generateAssignabilityCheck(JCTree.JCVariableDecl candidate, int n, List<JCTree.JCVariableDecl> args) {
 

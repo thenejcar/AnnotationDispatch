@@ -13,7 +13,7 @@ import javax.lang.model.element.Element;
 import java.util.*;
 
 /*
- * Model that defines a unique method
+ * Model that defines a unique method -- the same name, num of. parameters and modifiers
  * When using multiple dispatch, methods that belong to the same model, will be treated as the same method
  */
 public class MethodModel {
@@ -123,6 +123,11 @@ public class MethodModel {
     }
 
 
+    /*
+    * The sigunature of the dispatch method, that will be used instead of the original method instances
+    * it has the same name and number of parameters as the metod model, but all parameters are of type Object
+    * body is added later in ProcessorTree or in ProcessorReflection
+    * */
     public JCTree.JCMethodDecl generateDispatchMethod(TreeMaker tm, JavacElements elements) {
         Name generatedName = elements.getName(name.toString() + "_" + randomness);  // generate a random name
 

@@ -5,6 +5,10 @@ import com.sun.tools.javac.code.Type;
 import javax.lang.model.util.Types;
 import java.util.*;
 
+/*
+* A class that represents the type hierarchy
+* used for sorting / determining which type is more specific
+* */
 public class TypeTree {
 
     private class Node {

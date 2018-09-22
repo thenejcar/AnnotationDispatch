@@ -32,17 +32,12 @@ import static si.kisek.annotationdispatch.utils.Utils.javacList;
  * Processor that implements multiple dispatch with an extended Visitor pattern
  * */
 @SupportedAnnotationTypes({
-        "si.kisek.annotationdispatch.ExampleAnnotation",
         "si.kisek.annotationdispatch.MultiDispatch",
         "si.kisek.annotationdispatch.MultiDispatchClass",
-        "si.kisek.annotationdispatch.MultiDispatchVisitable",
-        "si.kisek.annotationdispatch.MultiDispatchVisitableBase"
+        "si.kisek.annotationdispatch.MultiDispatchVisitable"
 })
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 public class ProcessorVisitor extends MultidispatchProcessor {
-
-    private boolean pass1Complete = false;
-    private boolean pass2Complete = false;
 
     private HashMap<MethodModel, HashMap<Type, Set<AcceptMethod>>> acceptMethods;
     private Set<Type> rootTypes = new HashSet<>();
@@ -50,68 +45,69 @@ public class ProcessorVisitor extends MultidispatchProcessor {
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
 
-        if (!pass1Complete) {
-            pass1Complete = true;
-
-            processingEnv.getMessager().printMessage(Diagnostic.Kind.OTHER, "Round 1");
-
-            if (originalMethods.size() <= 0) {
-                originalMethods = super.processAnnotatedMethods(roundEnv);
-            }
-
-            if (originalMethods.size() == 0) {
-                // still no annotated methods, skip
-                processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "No dispatchable methods found, exiting");
-                return true;
-            }
-            this.acceptMethods = generateAcceptMethods(roundEnv);
-
-            for (MethodModel mm : super.originalMethods.keySet()) {
-
-                CodeGeneratorVisitor generator = new CodeGeneratorVisitor(super.tm, super.elements, super.types, super.symtab, mm, this.acceptMethods.get(mm), this.originalMethods.get(mm));
-
-                // first, generate the empty Visitor & Visitable classes
-                generator.generateVisitableAndVisitor();
-
-                // geenrate the init method and replace the original usages with it
-                JCTree.JCMethodDecl initMethod = generator.createVisitorInitMethod();
-                for (Element e : roundEnv.getElementsAnnotatedWith(MultiDispatchClass.class)) {
-                    JCTree.JCClassDecl classDecl = (JCTree.JCClassDecl) trees.getPath(e).getLeaf();
-                    if (classDecl == mm.getParentClass()) {
-                        super.replaceMethodsInClass(mm, initMethod, classDecl);
-                        processingEnv.getMessager().printMessage(Diagnostic.Kind.OTHER, "MultiDispatchClass " + e.getSimpleName() + " references to " + mm.getName() +" replaced.");
-                    }
-                }
-
-                // generate all visit/accept methods
-                generator.fillVisitableAndVisitor();
-                processingEnv.getMessager().printMessage(Diagnostic.Kind.OTHER, generator.getVisitableInterfaceName() + " generated and filled with visit methods");
-                for (Element e : roundEnv.getElementsAnnotatedWith(MultiDispatchVisitable.class)) {
-                    JCTree.JCClassDecl classDecl = ((JCTree.JCClassDecl) trees.getPath(e).getLeaf());
-                    // TODO: detect and complain when some accept types are missing the annotation
-                    // implement the Visitable interface (add the accept methods)
-                    generator.modifyVisitableClass(classDecl, rootTypes.contains(classDecl.sym.type));
-                    //System.out.println("Processing of visitable class " + e.getSimpleName() + " done.");
-                }
-            }
-
-            return true;
-
-        } else if (!pass2Complete) {
-            pass2Complete = true;
-            processingEnv.getMessager().printMessage(Diagnostic.Kind.OTHER, "Round 2");
-
-            return true;
-        } else {
+        if (roundEnv.processingOver()) {
+            msg.printMessage(Diagnostic.Kind.NOTE, "Processing done");
             return true;
         }
+
+        msg.printMessage(Diagnostic.Kind.NOTE, "Processing round started");
+
+        if (originalMethods.size() <= 0) {
+            originalMethods = super.processAnnotatedMethods(roundEnv);
+        }
+
+        if (originalMethods.size() == 0) {
+            // still no annotated methods, skip
+            msg.printMessage(Diagnostic.Kind.ERROR, "No dispatchable methods found, exiting");
+            return true;
+        }
+
+        // create the descriptions of accept methods that will be needed
+        this.acceptMethods = generateAcceptMethods();
+
+        for (MethodModel mm : super.originalMethods.keySet()) {
+
+            CodeGeneratorVisitor generator = new CodeGeneratorVisitor(super.tm, super.elements, super.types, super.symtab, mm, this.acceptMethods.get(mm), this.originalMethods.get(mm));
+
+            // generate the empty Visitor & Visitable classes
+            generator.generateVisitableAndVisitor();
+
+            // generate the visitor init method and replace the original methods calls with it
+            JCTree.JCMethodDecl initMethod = generator.createVisitorInitMethod();
+            for (Element e : roundEnv.getElementsAnnotatedWith(MultiDispatchClass.class)) {
+                JCTree.JCClassDecl classDecl = (JCTree.JCClassDecl) trees.getPath(e).getLeaf();
+                if (classDecl == mm.getParentClass()) {
+                    super.replaceMethodsInClass(mm, initMethod, classDecl);
+                }
+            }
+
+            // complete the visitor class and visitable interface
+            generator.fillVisitableAndVisitor();
+            msg.printMessage(Diagnostic.Kind.NOTE,"Generated visitable interface '" + generator.getVisitableInterfaceName() + "'.");
+
+            // modify visitable classes (extend the interface, inplement the methods)
+            for (Element e : roundEnv.getElementsAnnotatedWith(MultiDispatchVisitable.class)) {
+                JCTree.JCClassDecl classDecl = ((JCTree.JCClassDecl) trees.getPath(e).getLeaf());
+                // TODO: detect and complain when some accept types are missing the annotation
+                // implement the Visitable interface (add the accept methods)
+                generator.modifyVisitableClass(classDecl, rootTypes.contains(classDecl.sym.type), (JCTree.JCCompilationUnit)trees.getPath(e).getCompilationUnit());
+                msg.printMessage(Diagnostic.Kind.NOTE, "Visitable class '" + e.getSimpleName() + "' filled with accept methods.");
+            }
+        }
+
+        return true;
     }
 
-    private HashMap<MethodModel, HashMap<Type, Set<AcceptMethod>>> generateAcceptMethods(RoundEnvironment roundEnv) {
+    /*
+    * Find all the accept methods that are needed in the multi visitor and remember which type they can resolve
+    * Results are in 2-level hashmap, first maps by MM, the second maps by the type that a set of methods can resolve
+    * Also, remember the root types (the ones without a superclass)
+    * */
+    private HashMap<MethodModel, HashMap<Type, Set<AcceptMethod>>> generateAcceptMethods() {
 
         HashMap<MethodModel, HashMap<Type, Set<AcceptMethod>>> result = new HashMap<>();
 
-        // fill the Visitable class with default methods
+        // find all combinations of parameters that will be used in the accept methods
         for (MethodModel mm : originalMethods.keySet()) {
             Set<Type> possibleTypes = new HashSet<>();
             for (MethodInstance mi : originalMethods.get(mm)) {
@@ -130,16 +126,18 @@ public class ProcessorVisitor extends MultidispatchProcessor {
                     }
                 }
                 if (isRoot)
-                    rootTypes.add(t);
+                    rootTypes.add(t); // store in the set
 
                 acceptMethods.put(t, new HashSet<>()); // initialise the map
             }
 
             // generate a Map of all possible accept method that the Visitable interface will contain
             // acceptMethods maps a type to a set of methods where it is relevant (it will be resolved by them)
-            // each visitable class will implement the relevant methods
+            // each visitable class will implement the relevant methods, the rest are misses (call super or throw error)
             for (MethodInstance mi : originalMethods.get(mm)) {
 
+                // for each method instance, generate as many methods as it has parameters
+                // each method has i defined parameters and i - mm.getNumParameters() undefined parameters
                 for (int i = 0; i < mm.getNumParameters(); i++) {
                     String name = "accept" + (i + 1);
 
