@@ -57,6 +57,19 @@ class Tester:
             'InstancesVoid': {x: [] for x in self.ranges['InstancesVoid']}
         } for proc in processors}
 
+        # file sizes
+        self.file_sizes = {proc: {
+            'Parameters': {x: [] for x in self.ranges['Parameters']},
+            'ParametersVoid': {x: [] for x in self.ranges['ParametersVoid']},
+            'Classes': {x: [] for x in self.ranges['Classes']},
+            'ClassesVoid': {x: [] for x in self.ranges['ClassesVoid']},
+            'ClassesWidth': {x: [] for x in self.ranges['ClassesWidth']},
+            'Methods': {x: [] for x in self.ranges['Methods']},
+            'MethodsVoid': {x: [] for x in self.ranges['MethodsVoid']},
+            'Instances': {x: [] for x in self.ranges['Instances']},
+            'InstancesVoid': {x: [] for x in self.ranges['InstancesVoid']}
+        } for proc in processors}
+
         self.naslov = {
             "Parameters": "Število parametrov",
             "ParametersVoid": "Število parametrov",
@@ -106,6 +119,11 @@ class Tester:
                     print("Moving", len(files), "files to " + "classes-" + proc + "/")
                     for file in files:
                         os.rename("target/classes/" + file, "classes-" + proc + "/" + file)
+
+                    # remember the filesize
+                    du = filesize(proc, type, num)
+                    print(du, "MB")
+                    self.file_sizes[proc][type][num].append(du)
         print("cd ../")
         os.chdir("../")
 
@@ -139,6 +157,38 @@ class Tester:
 
                 # overwrite the lists in the results dict
                 self.compile_times[proc][test][num] = [float(x) for x in times]
+
+
+    def write_file_sizes(self):
+        print("compile times:")
+        with open('file_sizes.csv', 'a') as file:
+            header = 'processor,test,num'
+            for i in range(0, self.compile_rounds):
+                header += ',res%d' % i
+            header += ",avg\n"
+
+            file.write(header)
+            for proc in self.processors:
+                for t in self.test_types:
+                    for num in self.ranges[t]:
+                        row = proc + ',' + t + ',' + str(num) + ',' + ','.join([str(i) for i in self.file_sizes[proc][t][num]]) + ',' + str(average(self.file_sizes[proc][t][num])) + '\n'
+                        print(row)
+                        file.write(row)
+
+            file.close()
+
+    def read_file_sizes(self):
+        with open('file_sizes.csv', 'r') as file:
+            reader = csv.reader(file)
+            next(reader)
+            for row in reader:
+                proc = row[0]
+                test = row[1]
+                num = int(row[2])
+                times = row[3:-1]
+
+                # overwrite the lists in the results dict
+                self.file_sizes[proc][test][num] = [float(x) for x in times]
 
     def runTest(self):
         print("cd generated-tests/")
@@ -302,6 +352,57 @@ class Tester:
             else:
                 fig.savefig('figures/compileTime' + t + 'NoVisitor.pdf', bbox_inches='tight')
 
+    def plot_file_sizes(self, includeVisitor=True):
+
+        # plot compile times of all classes
+        for t in self.test_types:
+            fig = plt.figure(figsize=(7, 7))
+            #fig.suptitle("Compile time comparison by number of " + t)
+            ax = fig.add_subplot(111)
+            ax.set_xlabel(self.naslov[t])
+            ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+            ax.set_ylabel('Velikost prevedenih datotek [MB]')
+            ax.grid(which='major', linestyle='-')
+            ax.grid(which='minor', linestyle=':')
+
+            legend = []
+
+            for proc in self.processors:
+                if (proc == 'unmodified'):
+                    labela = "Brez obdelave anotacij"
+                    c = 'k'
+                elif (proc == 'visitor'):
+                    if (not includeVisitor):
+                        continue
+
+                    if t.endswith("Void"):
+                        labela = "Obiskovalec (void)"
+                        c = '#800000'
+                    else:
+                        labela = "Obiskovalec"
+                        c = 'r'
+                elif (proc == 'tree'):
+                    labela = "Odločitevno drevo"
+                    c = 'g'
+                elif (proc == 'reflection'):
+                    labela = "Odsevnost"
+                    c = 'b'
+                else:
+                    labela = proc
+                    c = 'k'
+
+                for num in self.ranges[t]:
+                    ax.scatter([num] * self.compile_rounds, self.file_sizes[proc][t][num], marker=self.marker, color=c)
+                ax.plot(self.ranges[t], [average(self.file_sizes[proc][t][x]) for x in self.ranges[t]], '-', color=c)
+                legend.append(mpatches.Patch(color=c, label=labela))
+
+            plt.legend(handles=legend)
+            plt.draw()
+            if (includeVisitor):
+                fig.savefig('figures/fileSize' + t + '.pdf', bbox_inches='tight')
+            else:
+                fig.savefig('figures/fileSize' + t + 'NoVisitor.pdf', bbox_inches='tight')
+
     def combined_parameters_plot(self):
         for t in ["Parameters", "Classes", "Methods", "Instances"]:
 
@@ -336,60 +437,10 @@ class Tester:
             plt.draw()
             fig.savefig('figures/speedtest' + t + 'Both.pdf', bbox_inches='tight')
 
-    def plot_filesizes(self, includeVisitor=True):
-        for t in self.test_types:
-            fig = plt.figure(figsize=(7, 7))
-            #fig.suptitle("File size comparison by number of " + t)
-            ax = fig.add_subplot(111)
-            ax.set_label('Number of ' + t)
-            ax.set_ylabel('Size [MB]')
-            ax.grid(which='major', linestyle='-')
-            ax.grid(which='minor', linestyle=':')
-
-            legend = []
-
-            for proc in self.processors:
-                print("Filesize -- " + t + " " + proc)
-                if (proc == 'unmodified'):
-                    labela = "Brez obdelave anotacij"
-                    c = 'k'
-                elif (proc == 'visitor'):
-                    if (not includeVisitor):
-                        continue
-
-                    if t == 'ParametersVoid':
-                        labela = "Obiskovalec (void)"
-                        c = '#800000'
-                    else:
-                        labela = "Obiskovalec"
-                        c = 'r'
-                elif (proc == 'tree'):
-                    labela = "Odločitevno drevo"
-                    c = 'g'
-                elif (proc == 'reflection'):
-                    labela = "Odsevnost"
-                    c = 'b'
-                else:
-                    labela = proc
-                    c = 'k'
-                sizes = [filesize(proc, t , r) for r in self.ranges[t]]
-                print("Sizes:", sizes)
-
-                ax.plot(self.ranges[t], sizes, '-', color=c)
-                legend.append(mpatches.Patch(color=c, label=labela))
-
-            plt.legend(handles=legend)
-            plt.draw()
-
-            if (includeVisitor):
-                fig.savefig('figures/filesize' + t + '.pdf', bbox_inches='tight')
-            else:
-                fig.savefig('figures/filesize' + t + 'NoVisitor.pdf', bbox_inches='tight')
-
-def filesize(proc, type, num):
+def filesize(proc, type, num, prefix=""):
     s = 0
-    s += os.path.getsize("generated-tests/classes-" + proc + "/" + type + str(num)  + ".class")
-    for file in glob.glob("generated-tests/classes-" + proc + "/" + type + str(num)  + "$*"):
+    s += os.path.getsize("classes-" + proc + "/" + type + str(num)  + ".class")
+    for file in glob.glob("classes-" + proc + "/" + type + str(num)  + "$*"):
         s += os.path.getsize(file)
     return s / 1e6
 
@@ -404,7 +455,7 @@ subprocess.run(["mvn", "-q", "clean", "compile"])
 N = 5 # number of repeats per test case
 M = 5 # number of different generated test cases
 
-tester = Tester(N, M, ["visitor", "tree", "reflection", "unmodified"], ["Parameters", "Classes", "ClassesWidth", "Methods", "Instances",  "ParametersVoid", "ClassesVoid", "MethodsVoid", "InstancesVoid"])
+tester = Tester(N, M, ["visitor", "tree", "reflection", "unmodified"], ["Parameters", "Classes", "ClassesWidth", "Methods", "Instances"]) #  "ParametersVoid", "ClassesVoid", "MethodsVoid", "InstancesVoid"])
 
 ## clean the csv files
 with open('testing_results.csv', 'w') as file:
@@ -420,18 +471,20 @@ for i in range(0, M):
 
 tester.write_results()
 tester.write_compile_times()
+tester.write_file_sizes()
 
 #tester.read_results()
 tester.plot_results()
 tester.plot_results(False)
-tester.combined_parameters_plot()
+#tester.combined_parameters_plot()
 
 #tester.read_compile_times()
 tester.plot_compile_times()
 tester.plot_compile_times(False)
 
-tester.plot_filesizes()
-tester.plot_filesizes(False)
+#tester.read_file_sizes()
+tester.plot_file_sizes()
+tester.plot_file_sizes(False)
 
 
 total_time = time.time() - total_time
