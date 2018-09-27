@@ -1,5 +1,6 @@
 package si.kisek.annotationdispatch.models;
 
+import com.sun.source.util.TreePath;
 import com.sun.tools.javac.code.Flags;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.code.TypeTag;
@@ -23,10 +24,11 @@ public class MethodModel {
     protected JCTree.JCModifiers modifiers;
     protected JCTree.JCClassDecl parentClass;
     protected Element parentElement;
+    protected TreePath parentPath;
     private String packageName;
     private String randomness;
 
-    public MethodModel(Name name, int numParameters, JCTree.JCExpression returnValue, JCTree.JCModifiers modifiers, JCTree.JCClassDecl parentClass, Element parentElement, String packageName) {
+    public MethodModel(Name name, int numParameters, JCTree.JCExpression returnValue, JCTree.JCModifiers modifiers, JCTree.JCClassDecl parentClass, Element parentElement, TreePath parentPath, String packageName) {
         this.name = name;
         this.numParameters = numParameters;
         this.returnValue = returnValue;
@@ -34,6 +36,7 @@ public class MethodModel {
         this.modifiers.annotations = com.sun.tools.javac.util.List.from(new JCTree.JCAnnotation[0]); // ignore annotations from the original method
         this.parentClass = parentClass;
         this.parentElement = parentElement;
+        this.parentPath = parentPath;
         this.packageName = packageName;
         this.randomness = UUID.randomUUID().toString().replace("-", "");
     }
@@ -76,6 +79,9 @@ public class MethodModel {
 
     public Element getParentElement() {
         return parentElement;
+    }
+    public TreePath getParentPath() {
+        return parentPath;
     }
 
     public void setParentClass(JCTree.JCClassDecl parentClass, Element parentElement) {

@@ -2,8 +2,12 @@ package si.kisek.annotationdispatch.utils;
 
 import com.sun.tools.javac.code.Scope;
 import com.sun.tools.javac.code.Symbol;
+import com.sun.tools.javac.code.Symtab;
+import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree;
 
+import javax.annotation.processing.Messager;
+import javax.tools.Diagnostic;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -37,6 +41,51 @@ public class Utils {
         defs.addAll(imports);
         defs.addAll(compUnit.defs);
         compUnit.defs = javacList(defs);
+    }
+
+    /*
+     * Inject generated method in the parent class of the original ones
+     * */
+    public static void addNewMethod(JCTree.JCClassDecl classDecl, JCTree.JCMethodDecl generatedMethod, Symtab symtab, Messager msg) {
+
+        classDecl.defs = classDecl.defs.append(generatedMethod);  // add the method to the class
+
+        List<Type> paramTypes = new ArrayList<>();
+        for (JCTree.JCVariableDecl varDecl : generatedMethod.params) {
+            paramTypes.add(varDecl.type == null ? varDecl.vartype.type : varDecl.type);
+        }
+
+        Type returnType = generatedMethod.getReturnType() == null ? new Type.JCVoidType() : generatedMethod.getReturnType().type;
+
+        Symbol.MethodSymbol methodSymbol = new Symbol.MethodSymbol(
+                generatedMethod.mods.flags,
+                generatedMethod.name,
+                new Type.MethodType(javacList(paramTypes), returnType, javacList(new Type[0]), symtab.methodClass),
+                classDecl.sym
+        );
+
+        // use reflection to add the generated method symbol to the parent class
+        Utils.addSymbolToClass(classDecl, methodSymbol);
+
+        if (msg != null)
+            msg.printMessage(Diagnostic.Kind.NOTE, "Method " + generatedMethod.name + " added to " + classDecl.name);
+    }
+
+    public static void addNewField(JCTree.JCClassDecl classDecl, JCTree.JCVariableDecl generatedVar, Symtab symtab, Messager msg) {
+        classDecl.defs = classDecl.defs.append(generatedVar);  // add the method to the class
+
+        Symbol.VarSymbol varSymbol = new Symbol.VarSymbol(
+                generatedVar.mods.flags,
+                generatedVar.name,
+                new Type.TypeVar(generatedVar.name, generatedVar.sym, generatedVar.vartype.type),
+                classDecl.sym
+        );
+
+        // use reflection to add the generated method symbol to the parent class
+        Utils.addSymbolToClass(classDecl, varSymbol);
+
+        if (msg != null)
+            msg.printMessage(Diagnostic.Kind.NOTE, "Variable " + generatedVar.name + " added to " + classDecl.name);
     }
 
 

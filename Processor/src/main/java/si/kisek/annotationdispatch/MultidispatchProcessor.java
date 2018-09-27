@@ -96,6 +96,7 @@ public abstract class MultidispatchProcessor extends AbstractProcessor {
                         declaration.mods,
                         (JCTree.JCClassDecl) parent.getLeaf(),
                         e,
+                        trees.getPath(e),
                         elements.getPackageOf(e).getQualifiedName().toString()
                 );
                 map.putIfAbsent(model, new HashSet<>());

@@ -78,9 +78,9 @@ public class ProcessorReflection extends MultidispatchProcessor {
             generatedMethods.putAll(dispatchers);
 
             // add the statements to class and fill the symtables
-            addNewField(parent, methodMap);
-            addNewMethod(parent, initMethod);
-            dispatchers.values().forEach(dispatcher -> addNewMethod(parent, dispatcher));
+            Utils.addNewField(parent, methodMap, symtab, msg);
+            Utils.addNewMethod(parent, initMethod, symtab, msg);
+            dispatchers.values().forEach(dispatcher -> Utils.addNewMethod(parent, dispatcher, symtab, msg));
 
             // import java.util.*;
             // import java.lang.reflect.*;
@@ -109,49 +109,6 @@ public class ProcessorReflection extends MultidispatchProcessor {
                 super.replaceMethodsInClass(mm, generatedMethods.get(mm), classDecl);
             }
         }
-    }
-
-    /*
-     * Inject generated method in the parent class of the original ones
-     * */
-    private void addNewMethod(JCTree.JCClassDecl classDecl, JCTree.JCMethodDecl generatedMethod) {
-
-        classDecl.defs = classDecl.defs.append(generatedMethod);  // add the method to the class
-
-        List<Type> paramTypes = new ArrayList<>();
-        for (JCTree.JCVariableDecl varDecl : generatedMethod.params) {
-            paramTypes.add(varDecl.type == null ? varDecl.vartype.type : varDecl.type);
-        }
-
-        Type returnType = generatedMethod.getReturnType() == null ? new Type.JCVoidType() : generatedMethod.getReturnType().type;
-
-        Symbol.MethodSymbol methodSymbol = new Symbol.MethodSymbol(
-                generatedMethod.mods.flags,
-                generatedMethod.name,
-                new Type.MethodType(javacList(paramTypes), returnType, javacList(new Type[0]), symtab.methodClass),
-                classDecl.sym
-        );
-
-        // use reflection to add the generated method symbol to the parent class
-        Utils.addSymbolToClass(classDecl, methodSymbol);
-
-        msg.printMessage(Diagnostic.Kind.NOTE, "Method " + generatedMethod.name + " added to " + classDecl.name);
-    }
-
-    private void addNewField(JCTree.JCClassDecl classDecl, JCTree.JCVariableDecl generatedVar) {
-        classDecl.defs = classDecl.defs.append(generatedVar);  // add the method to the class
-
-        Symbol.VarSymbol varSymbol = new Symbol.VarSymbol(
-                generatedVar.mods.flags,
-                generatedVar.name,
-                new Type.TypeVar(generatedVar.name, generatedVar.sym, generatedVar.vartype.type),
-                classDecl.sym
-        );
-
-        // use reflection to add the generated method symbol to the parent class
-        Utils.addSymbolToClass(classDecl, varSymbol);
-
-        msg.printMessage(Diagnostic.Kind.NOTE, "Variable " + generatedVar.name + " added to " + classDecl.name);
     }
 
 }

@@ -66,8 +66,9 @@ public class ProcessorVisitor extends MultidispatchProcessor {
         this.acceptMethods = generateAcceptMethods();
 
         for (MethodModel mm : super.originalMethods.keySet()) {
+            msg.printMessage(Diagnostic.Kind.NOTE, "Processing the method mode '" + mm.toString() + "'");
 
-            CodeGeneratorVisitor generator = new CodeGeneratorVisitor(super.tm, super.elements, super.types, super.symtab, mm, this.acceptMethods.get(mm), this.originalMethods.get(mm));
+            CodeGeneratorVisitor generator = new CodeGeneratorVisitor(super.tm, super.elements, super.types, super.symtab, mm, this.acceptMethods.get(mm), this.originalMethods.get(mm), msg);
 
             // generate the empty Visitor & Visitable classes
             generator.generateVisitableAndVisitor();
@@ -91,7 +92,6 @@ public class ProcessorVisitor extends MultidispatchProcessor {
                 // TODO: detect and complain when some accept types are missing the annotation
                 // implement the Visitable interface (add the accept methods)
                 generator.modifyVisitableClass(classDecl, rootTypes.contains(classDecl.sym.type), (JCTree.JCCompilationUnit)trees.getPath(e).getCompilationUnit());
-                msg.printMessage(Diagnostic.Kind.NOTE, "Visitable class '" + e.getSimpleName() + "' filled with accept methods.");
             }
         }
 

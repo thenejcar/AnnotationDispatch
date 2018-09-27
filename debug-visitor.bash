@@ -17,9 +17,11 @@ echo "Compilation done, running the compiled TestClass"
 
 cd target/classes/
 
-echo "Double dispatch example: "
+echo "AnotherClass -------------------------------------------------"
 java si.kisek.annotationdispatchdemo.AnotherClass
+echo "-------------------------------------------------"
 
-echo "'Quadruple' dispatch example: "
+echo "TestClass -------------------------------------------------"
 java si.kisek.annotationdispatchdemo.TestClass
+echo "-------------------------------------------------"
 
