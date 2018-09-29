@@ -464,6 +464,9 @@ with open('testing_results.csv', 'w') as file:
 with open('compile_times.csv', 'w') as file:
     print("cleaning the csv file: " + file.name)
 
+with open('file_sizes.csv', 'w') as file:
+    print("cleaning the csv file: " + file.name)
+
 for i in range(0, M):
      print("Test cases ", i)
      tester.compile()

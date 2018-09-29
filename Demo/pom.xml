@@ -57,7 +57,7 @@
                         <artifactId>maven-compiler-plugin</artifactId>
                         <version>3.6.2</version>
                         <configuration>
-                            <verbose>true</verbose>
+                            <!--verbose>true</verbose-->
                             <compilerVersion>1.8</compilerVersion>
                             <compilerArgument>-Xlint:all</compilerArgument>
                             <source>1.8</source>

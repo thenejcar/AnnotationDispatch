@@ -636,7 +636,17 @@ public class CodeGeneratorVisitor {
                 tm.Select(tm.Ident(params.get(0).name), el.getName("accept1")),
                 javacList(callParameters)
         );
-        methodBody.add(tm.Exec(acceptCall));
+        methodBody.add(tm.If(
+                tm.Parens(tm.Unary(JCTree.Tag.NOT, acceptCall)),
+                tm.Block(0, asJavacList(tm.Throw(tm.NewClass(
+                        null,
+                        emptyExpr(),
+                        tm.Ident(el.getName("RuntimeException")),
+                        asJavacList(tm.Literal(TypeTag.CLASS, "Dispatching parameters failed: " + mm.toString())),
+                        null
+                )))),
+                null
+                ));
 
         if (!mm.isVoid()) {
             methodBody.add(tm.Return(tm.Select(tm.Ident(visitorInstance), el.getName("returnVal"))));
