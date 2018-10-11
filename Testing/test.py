@@ -8,8 +8,30 @@ from matplotlib import pyplot as plt
 from matplotlib import patches as mpatches
 from matplotlib.ticker import MaxNLocator
 
+
 def average(lst):
     return sum(lst) / len(lst)
+
+
+ranges = {
+    'Parameters': [1, 2, 3, 5, 10, 15, 20],
+    # 'Classes_1p': [1, 2, 3, 4, 5, 8, 10],
+    # 'ClassesWidth_1p': [1, 2, 3, 4, 5, 8, 10],
+    # 'Methods_1p': [1, 2, 4, 5, 10, 20, 25],
+    # 'Instances_1p': [1, 2, 4, 5, 10, 20, 25],
+    'Classes_2p': [1, 2, 3, 4, 5, 8, 10],
+    'ClassesWidth_2p': [1, 2, 3, 4, 5, 8, 10],
+    'Methods_2p': [1, 2, 4, 5, 10, 20, 25],
+    'Instances_2p': [1, 2, 4, 5, 10, 20, 25],
+    # 'Classes_3p': [1, 2, 3, 4, 5, 8, 10],
+    # 'ClassesWidth_3p': [1, 2, 3, 4, 5, 8, 10],
+    # 'Methods_3p': [1, 2, 4, 5, 10, 20, 25],
+    # 'Instances_3p': [1, 2, 4, 5, 10, 20, 25],
+    # 'Classes_5p': [1, 2, 3, 4, 5, 8, 10],
+    # 'ClassesWidth_5p': [1, 2, 3, 4, 5, 8, 10],
+    # 'Methods_5p': [1, 2, 4, 5, 10, 20, 25],
+    # 'Instances_5p': [1, 2, 4, 5, 10, 20, 25],
+}
 
 
 class Tester:
@@ -19,68 +41,27 @@ class Tester:
 
         self.processors = processors
         self.test_types = test_types
-        self.ranges = {
-            'Parameters': [1, 2, 3, 5, 10, 15, 20],
-            'ParametersVoid': [1, 2, 3, 5, 10, 15, 20],
-            'Classes': [1, 2, 3, 4, 5, 8, 10],
-            'ClassesVoid': [1, 2, 3, 4, 5, 8, 10],
-            'ClassesWidth': [1, 2, 3, 4, 5, 8, 10],
-            'Methods': [1, 2, 4, 5, 10, 20, 25],
-            'MethodsVoid': [1, 2, 4, 5, 10, 20, 25],
-            'Instances': [1, 2, 4, 5, 10, 20, 25],
-            'InstancesVoid': [1, 2, 4, 5, 10, 20, 25]
-        }
 
-        # dictionary of all results (running time)
-        self.results = {proc: {
-            'Parameters': {x: [] for x in self.ranges['Parameters']},
-            'ParametersVoid': {x: [] for x in self.ranges['ParametersVoid']},
-            'Classes': {x: [] for x in self.ranges['Classes']},
-            'ClassesVoid': {x: [] for x in self.ranges['ClassesVoid']},
-            'ClassesWidth': {x: [] for x in self.ranges['ClassesWidth']},
-            'Methods': {x: [] for x in self.ranges['Methods']},
-            'MethodsVoid': {x: [] for x in self.ranges['MethodsVoid']},
-            'Instances': {x: [] for x in self.ranges['Instances']},
-            'InstancesVoid': {x: [] for x in self.ranges['InstancesVoid']}
-        } for proc in processors}
+        # dictionaries to hold running time, compilation times and file sizes
+        self.results = {proc: {key : {x: [] for x in ranges[key]} for key in ranges.keys()} for proc in processors}
+        self.compile_times = {proc: {key : {x: [] for x in ranges[key]} for key in ranges.keys()} for proc in processors}
+        self.file_sizes = {proc: {key : {x: [] for x in ranges[key]} for key in ranges.keys()} for proc in processors}
 
-        # compilation times
-        self.compile_times = {proc: {
-            'Parameters': {x: [] for x in self.ranges['Parameters']},
-            'ParametersVoid': {x: [] for x in self.ranges['ParametersVoid']},
-            'Classes': {x: [] for x in self.ranges['Classes']},
-            'ClassesVoid': {x: [] for x in self.ranges['ClassesVoid']},
-            'ClassesWidth': {x: [] for x in self.ranges['ClassesWidth']},
-            'Methods': {x: [] for x in self.ranges['Methods']},
-            'MethodsVoid': {x: [] for x in self.ranges['MethodsVoid']},
-            'Instances': {x: [] for x in self.ranges['Instances']},
-            'InstancesVoid': {x: [] for x in self.ranges['InstancesVoid']}
-        } for proc in processors}
+        # slovenian translations for the pdf charts
+        self.naslov = {}
+        for key in ranges.keys():
+            if (key.startswith("Parameters")):
+                self.naslov[key] = "Število parametrov"
+            elif (key.startswith("Methods")):
+                self.naslov[key] = "Število modelov"
+            elif (key.startswith("Instances")):
+                self.naslov[key] = "Število primerkov"
+            elif (key.startswith("ClassesWidth")):
+                self.naslov[key] = "Širina razredne hierarhije"
+            elif (key.startswith("Classes")):
+                self.naslov[key] = "Globina razredne hierarhije"
 
-        # file sizes
-        self.file_sizes = {proc: {
-            'Parameters': {x: [] for x in self.ranges['Parameters']},
-            'ParametersVoid': {x: [] for x in self.ranges['ParametersVoid']},
-            'Classes': {x: [] for x in self.ranges['Classes']},
-            'ClassesVoid': {x: [] for x in self.ranges['ClassesVoid']},
-            'ClassesWidth': {x: [] for x in self.ranges['ClassesWidth']},
-            'Methods': {x: [] for x in self.ranges['Methods']},
-            'MethodsVoid': {x: [] for x in self.ranges['MethodsVoid']},
-            'Instances': {x: [] for x in self.ranges['Instances']},
-            'InstancesVoid': {x: [] for x in self.ranges['InstancesVoid']}
-        } for proc in processors}
 
-        self.naslov = {
-            "Parameters": "Število parametrov",
-            "ParametersVoid": "Število parametrov",
-            "Methods": "Število modelov",
-            "MethodsVoid": "Število modelov",
-            "Instances": "Število primerkov metod",
-            "InstancesVoid": "Število primerkov metod",
-            "Classes": "Globina razredne hierarhije",
-            "ClassesVoid": "Globina razredne hierarhije",
-            "ClassesWidth": "Širina razredne hierarhije"
-        }
         self.marker = '.'
 
     def compile(self):
@@ -102,10 +83,10 @@ class Tester:
                 os.remove("classes-" + proc + "/" + file)
 
             for type in self.test_types:
-                for num in self.ranges[type]:
+                for num in ranges[type]:
                     t = time.time()
                     str_processor = "-P" + proc
-                    str_include = "-Dinclude=" + type + str(num) + ".java"
+                    str_include = "-Dinclude=" + type + "_" +str(num) + ".java"
 
                     print("mvn", "-q", str_processor, str_include, "compile")
                     subprocess.run(["mvn", "-q", str_processor, str_include, "compile"])
@@ -138,8 +119,10 @@ class Tester:
             file.write(header)
             for proc in self.processors:
                 for t in self.test_types:
-                    for num in self.ranges[t]:
-                        row = proc + ',' + t + ',' + str(num) + ',' + ','.join([str(i) for i in self.compile_times[proc][t][num]]) + ',' + str(average(self.compile_times[proc][t][num])) + '\n'
+                    for num in ranges[t]:
+                        row = proc + ',' + t + ',' + str(num) + ',' + ','.join(
+                            [str(i) for i in self.compile_times[proc][t][num]]) + ',' + str(
+                            average(self.compile_times[proc][t][num])) + '\n'
                         print(row)
                         file.write(row)
 
@@ -158,7 +141,6 @@ class Tester:
                 # overwrite the lists in the results dict
                 self.compile_times[proc][test][num] = [float(x) for x in times]
 
-
     def write_file_sizes(self):
         print("compile times:")
         with open('file_sizes.csv', 'a') as file:
@@ -170,8 +152,10 @@ class Tester:
             file.write(header)
             for proc in self.processors:
                 for t in self.test_types:
-                    for num in self.ranges[t]:
-                        row = proc + ',' + t + ',' + str(num) + ',' + ','.join([str(i) for i in self.file_sizes[proc][t][num]]) + ',' + str(average(self.file_sizes[proc][t][num])) + '\n'
+                    for num in ranges[t]:
+                        row = proc + ',' + t + ',' + str(num) + ',' + ','.join(
+                            [str(i) for i in self.file_sizes[proc][t][num]]) + ',' + str(
+                            average(self.file_sizes[proc][t][num])) + '\n'
                         print(row)
                         file.write(row)
 
@@ -206,8 +190,8 @@ class Tester:
                 for t in self.test_types:
 
                     print("Testing " + t)
-                    for num in self.ranges[t]:
-                        clazz = t + str(num)
+                    for num in ranges[t]:
+                        clazz = t + "_" + str(num)
                         print("%-15s" % clazz, end="")
                         result = subprocess.run(["java", clazz], stdout=subprocess.PIPE)
                         time = int(result.stdout)
@@ -231,8 +215,10 @@ class Tester:
                 if (proc == 'unmodified'):
                     continue  # skip the default
                 for t in self.test_types:
-                    for num in self.ranges[t]:
-                        row = proc + ',' + t + ',' + str(num) + ',' + ','.join([str(i) for i in self.results[proc][t][num]]) + ',' + str(average(self.results[proc][t][num]) / 1e6) + '\n'
+                    for num in ranges[t]:
+                        row = proc + ',' + t + ',' + str(num) + ',' + ','.join(
+                            [str(i) for i in self.results[proc][t][num]]) + ',' + str(
+                            average(self.results[proc][t][num]) / 1e6) + '\n'
                         print(row)
                         file.write(row)
 
@@ -251,12 +237,11 @@ class Tester:
                 # overwrite the lists in the results dict
                 self.results[proc][test][num] = [int(x) for x in results]
 
-
     def plot_results(self, includeVisitor=True):
         # plot running speed for all tests
         for t in self.test_types:
             fig = plt.figure(figsize=(7, 7))
-            #fig.suptitle("Speedtest comparison by number of " + t)
+            # fig.suptitle("Speedtest comparison by number of " + t)
             ax = fig.add_subplot(111)
             ax.set_xlabel(self.naslov[t])
             ax.xaxis.set_major_locator(MaxNLocator(integer=True))
@@ -289,9 +274,10 @@ class Tester:
                     labela = proc
                     c = 'k'
 
-                for num in self.ranges[t]:
-                    ax.scatter([num] * self.rounds * self.compile_rounds, [(i / 1e9) for i in self.results[proc][t][num]], marker=self.marker, color=c)
-                ax.plot(self.ranges[t], [average(self.results[proc][t][x]) / 1e9 for x in self.ranges[t]], '-', color=c)
+                for num in ranges[t]:
+                    ax.scatter([num] * self.rounds * self.compile_rounds,
+                               [(i / 1e9) for i in self.results[proc][t][num]], marker=self.marker, color=c)
+                ax.plot(ranges[t], [average(self.results[proc][t][x]) / 1e9 for x in ranges[t]], '-', color=c)
                 legend.append(mpatches.Patch(color=c, label=labela))
 
             plt.legend(handles=legend)
@@ -306,7 +292,7 @@ class Tester:
         # plot compile times of all classes
         for t in self.test_types:
             fig = plt.figure(figsize=(7, 7))
-            #fig.suptitle("Compile time comparison by number of " + t)
+            # fig.suptitle("Compile time comparison by number of " + t)
             ax = fig.add_subplot(111)
             ax.set_xlabel(self.naslov[t])
             ax.xaxis.set_major_locator(MaxNLocator(integer=True))
@@ -340,9 +326,10 @@ class Tester:
                     labela = proc
                     c = 'k'
 
-                for num in self.ranges[t]:
-                    ax.scatter([num] * self.compile_rounds, self.compile_times[proc][t][num], marker=self.marker, color=c)
-                ax.plot(self.ranges[t], [average(self.compile_times[proc][t][x]) for x in self.ranges[t]], '-', color=c)
+                for num in ranges[t]:
+                    ax.scatter([num] * self.compile_rounds, self.compile_times[proc][t][num], marker=self.marker,
+                               color=c)
+                ax.plot(ranges[t], [average(self.compile_times[proc][t][x]) for x in ranges[t]], '-', color=c)
                 legend.append(mpatches.Patch(color=c, label=labela))
 
             plt.legend(handles=legend)
@@ -357,7 +344,7 @@ class Tester:
         # plot compile times of all classes
         for t in self.test_types:
             fig = plt.figure(figsize=(7, 7))
-            #fig.suptitle("Compile time comparison by number of " + t)
+            # fig.suptitle("Compile time comparison by number of " + t)
             ax = fig.add_subplot(111)
             ax.set_xlabel(self.naslov[t])
             ax.xaxis.set_major_locator(MaxNLocator(integer=True))
@@ -391,9 +378,9 @@ class Tester:
                     labela = proc
                     c = 'k'
 
-                for num in self.ranges[t]:
+                for num in ranges[t]:
                     ax.scatter([num] * self.compile_rounds, self.file_sizes[proc][t][num], marker=self.marker, color=c)
-                ax.plot(self.ranges[t], [average(self.file_sizes[proc][t][x]) for x in self.ranges[t]], '-', color=c)
+                ax.plot(ranges[t], [average(self.file_sizes[proc][t][x]) for x in ranges[t]], '-', color=c)
                 legend.append(mpatches.Patch(color=c, label=labela))
 
             plt.legend(handles=legend)
@@ -407,12 +394,12 @@ class Tester:
         for t in ["Parameters", "Classes", "Methods", "Instances"]:
 
             fig = plt.figure(figsize=(7, 7))
-            #fig.suptitle("Visitor comparison with void methods")
+            # fig.suptitle("Visitor comparison with void methods")
             ax = fig.add_subplot(111)
-            #ax.set_xlabel('Number of Parameters')
+            # ax.set_xlabel('Number of Parameters')
             ax.set_xlabel(self.naslov[t])
             ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-            #ax.set_ylabel('Compile time [s]')
+            # ax.set_ylabel('Compile time [s]')
             ax.set_ylabel('Čas izvajanja [s]')
             ax.grid(which='major', linestyle='-')
             ax.grid(which='minor', linestyle=':')
@@ -423,26 +410,31 @@ class Tester:
             c1 = 'r'
             c2 = '#800000'
 
-            for num in self.ranges[t]:
-                ax.scatter([num] * self.rounds * self.compile_rounds, [(i / 1e9) for i in self.results[proc][t][num]], marker=self.marker, color=c1)
-            ax.plot(self.ranges[t], [average(self.results[proc][t][x]) / 1e9 for x in self.ranges[t]], '-', color=c1)
+            for num in ranges[t]:
+                ax.scatter([num] * self.rounds * self.compile_rounds, [(i / 1e9) for i in self.results[proc][t][num]],
+                           marker=self.marker, color=c1)
+            ax.plot(ranges[t], [average(self.results[proc][t][x]) / 1e9 for x in ranges[t]], '-', color=c1)
             legend.append(mpatches.Patch(color=c1, label="Obiskovalec"))
 
-            for num in self.ranges[t+"Void"]:
-                ax.scatter([num] * self.rounds * self.compile_rounds, [(i / 1e9) for i in self.results[proc][t+"Void"][num]], marker=self.marker, color=c2)
-            ax.plot(self.ranges[t+"Void"], [average(self.results[proc][t+"Void"][x]) / 1e9 for x in self.ranges[t+"Void"]], '-', color=c2)
+            for num in ranges[t + "Void"]:
+                ax.scatter([num] * self.rounds * self.compile_rounds,
+                           [(i / 1e9) for i in self.results[proc][t + "Void"][num]], marker=self.marker, color=c2)
+            ax.plot(ranges[t + "Void"],
+                    [average(self.results[proc][t + "Void"][x]) / 1e9 for x in ranges[t + "Void"]], '-', color=c2)
             legend.append(mpatches.Patch(color=c2, label="Obiskovalec (void)"))
 
             plt.legend(handles=legend)
             plt.draw()
             fig.savefig('figures/speedtest' + t + 'Both.pdf', bbox_inches='tight')
 
+
 def filesize(proc, type, num, prefix=""):
     s = 0
-    s += os.path.getsize("classes-" + proc + "/" + type + str(num)  + ".class")
-    for file in glob.glob("classes-" + proc + "/" + type + str(num)  + "$*"):
+    s += os.path.getsize("classes-" + proc + "/" + type + "_" + str(num) + ".class")
+    for file in glob.glob("classes-" + proc + "/" + type + "_" + str(num) + "$*"):
         s += os.path.getsize(file)
     return s / 1e6
+
 
 # main
 
@@ -455,7 +447,7 @@ subprocess.run(["mvn", "-q", "clean", "compile"])
 N = 5 # number of repeats per test case
 M = 5 # number of different generated test cases
 
-tester = Tester(N, M, ["visitor", "tree", "reflection", "unmodified"], ["Parameters", "Classes", "ClassesWidth", "Methods", "Instances"]) #  "ParametersVoid", "ClassesVoid", "MethodsVoid", "InstancesVoid"])
+tester = Tester(N, M, ["visitor", "tree", "reflection", "unmodified"], list(ranges.keys()))
 
 ## clean the csv files
 with open('testing_results.csv', 'w') as file:
@@ -479,7 +471,7 @@ tester.write_file_sizes()
 #tester.read_results()
 tester.plot_results()
 tester.plot_results(False)
-#tester.combined_parameters_plot()
+# tester.combined_parameters_plot()
 
 #tester.read_compile_times()
 tester.plot_compile_times()
@@ -488,7 +480,6 @@ tester.plot_compile_times(False)
 #tester.read_file_sizes()
 tester.plot_file_sizes()
 tester.plot_file_sizes(False)
-
 
 total_time = time.time() - total_time
 print("Testing finished in", total_time / 60.0, "minutes.")

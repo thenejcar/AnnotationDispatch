@@ -59,6 +59,10 @@ public class Generator {
                 "        // Parameter objects\n" +
                 String.join("\n", parameterObjectsInit) +
                 "\n\n" +
+                "        // Warm-up\n" +
+                "        for (int i=0; i<10000; i++) {\n" +
+                String.join("\n", testCalls) +
+                "        }\n\n\n" +
                 "        // Test calls\n" +
                 "        long t = System.nanoTime();\n" +
                 "        for (int i=0; i<200000; i++) {\n" +

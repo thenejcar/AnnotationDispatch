@@ -8,6 +8,7 @@ import java.io.BufferedOutputStream;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 
 /*
@@ -36,68 +37,71 @@ public class GenerateTestCases {
 
         // testing the number of parameters per method
         System.out.println("Generating test: Parameters");
-        for (int i : new int[] {1, 2, 3, 5, 10, 15, 20}) {
-            String str = Generator.generateTestClass("Parameters" + i, 1, 5, 100, i, 3, 3, 3, false);
-            write(GENERATED_PATH + "Parameters" + i + ".java", str);
+        for (int i : new int[]{1, 2, 3, 5, 10, 15, 20}) {
+            String str = Generator.generateTestClass("Parameters_" + i, 1, 5, 100, i, 3, 3, 3, false);
+            write(GENERATED_PATH + "Parameters_" + i + ".java", str);
         }
 
-        // testing the number of classes available -- don't overdo this, or we get COMPILATION ERROR: too many constants
-        System.out.println("Generating test: Classes");
-        for (int i : new int[] {1, 2, 3, 4, 5, 8, 10}) {
-            String str = Generator.generateTestClass("Classes" + i, 1, 5, 100, 5, 3, i, 3, false);
-            write(GENERATED_PATH + "Classes" + i + ".java", str);
+        // try the other experiments with different default number of parameters
+        for (int defaultParameters : Arrays.asList(1, 2, 3, 5)) {
+
+            // testing the number of classes available -- don't overdo this, or we get COMPILATION ERROR: too many constants
+            System.out.println("Generating test: Classes");
+            for (int i : new int[]{1, 2, 3, 4, 5, 8, 10}) {
+                String str = Generator.generateTestClass("Classes_" + defaultParameters + "p_" + i, 1, 5, 100, defaultParameters, 3, i, 3, false);
+                write(GENERATED_PATH + "Classes_" + defaultParameters + "p_" + i + ".java", str);
+            }
+
+            System.out.println("Generating test: ClassesWidth");
+            for (int i : new int[]{1, 2, 3, 4, 5, 8, 10}) {
+                String str = Generator.generateTestClass("ClassesWidth_" + defaultParameters + "p_" + i, 1, 5, 100, defaultParameters, 3, 4, i, false);
+                write(GENERATED_PATH + "ClassesWidth_" + defaultParameters + "p_" + i + ".java", str);
+            }
+
+            // testing the number of multimethods
+            System.out.println("Generating test: Methods");
+            for (int i : new int[]{1, 2, 4, 5, 10, 20, 25}) {
+                String str = Generator.generateTestClass("Methods_" + defaultParameters + "p_" + i, i, 5, (100 / i), defaultParameters, 3, 3, 3, false);
+                write(GENERATED_PATH + "Methods_" + defaultParameters + "p_" + i + ".java", str);
+            }
+
+            // testing the number of instances
+            System.out.println("Generating test: Instances");
+            for (int i : new int[]{1, 2, 4, 5, 10, 20, 25}) {
+                String str = Generator.generateTestClass("Instances_" + defaultParameters + "p_" + i, 1, i, 100, defaultParameters, 3, 3, 3, false);
+                write(GENERATED_PATH + "Instances_" + defaultParameters + "p_" + i + ".java", str);
+            }
+
         }
-
-        System.out.println("Generating test: ClassesWidth");
-        for (int i : new int[] {1, 2, 3, 4, 5, 8, 10}) {
-            String str = Generator.generateTestClass("ClassesWidth" + i, 1, 5, 100, 5, 3,  4, i, false);
-            write(GENERATED_PATH + "ClassesWidth" + i + ".java", str);
-        }
-
-        // testing the number of multimethods
-        System.out.println("Generating test: Methods");
-        for (int i : new int[] {1, 2, 4, 5, 10, 20, 25}) {
-            String str = Generator.generateTestClass("Methods" + i, i, 5, (100 / i), 5, 3, 3, 3, false);
-            write(GENERATED_PATH + "Methods" + i + ".java", str);
-        }
-
-        // testing the number of instances
-        System.out.println("Generating test: Instances");
-        for (int i : new int[] {1, 2, 4, 5, 10, 20, 25}) {
-            String str = Generator.generateTestClass("Instances" + i, 1, i, 100, 5, 3, 3, 3, false);
-            write(GENERATED_PATH + "Instances" + i + ".java", str);
-        }
-
-
-
-        // testing parameters with void method
-        System.out.println("Generating test: ParametersVoid");
-        for (int i : new int[] {1, 2, 3, 5, 10, 15, 20}) {
-            String str = Generator.generateTestClass("ParametersVoid" + i, 1, 5, 100, i, 3, 3, 3, true);
-            write(GENERATED_PATH + "ParametersVoid" + i + ".java", str);
-        }
-
-        // testing the number of classes available -- don't overdo this, or we get COMPILATION ERROR: too many constants
-        System.out.println("Generating test: ClassesVoid");
-        for (int i : new int[] {1, 2, 3, 4, 5, 8, 10}) {
-            String str = Generator.generateTestClass("ClassesVoid" + i, 1, 5, 100, 5, 3, i, 3, true);
-            write(GENERATED_PATH + "ClassesVoid" + i + ".java", str);
-        }
-
-
-        // testing the number of multimethods
-        System.out.println("Generating test: MethodsVoid");
-        for (int i : new int[] {1, 2, 4, 5, 10, 20, 25}) {
-            String str = Generator.generateTestClass("MethodsVoid" + i, i, 5, (100 / i), 5, 3, 3, 3, true);
-            write(GENERATED_PATH + "MethodsVoid" + i + ".java", str);
-        }
-
-        // testing the number of instances
-        System.out.println("Generating test: InstancesVoid");
-        for (int i : new int[] {1, 2, 4, 5, 10, 20, 25}) {
-            String str = Generator.generateTestClass("InstancesVoid" + i, 1, i, 100, 5, 3, 3, 3, true);
-            write(GENERATED_PATH + "InstancesVoid" + i + ".java", str);
-        }
+//
+//        // testing parameters with void method
+//        System.out.println("Generating test: ParametersVoid");
+//        for (int i : new int[] {1, 2, 3, 5, 10, 15, 20}) {
+//            String str = Generator.generateTestClass("ParametersVoid" + i, 1, 5, 100, i, 3, 3, 3, true);
+//            write(GENERATED_PATH + "ParametersVoid" + i + ".java", str);
+//        }
+//
+//        // testing the number of classes available -- don't overdo this, or we get COMPILATION ERROR: too many constants
+//        System.out.println("Generating test: ClassesVoid");
+//        for (int i : new int[] {1, 2, 3, 4, 5, 8, 10}) {
+//            String str = Generator.generateTestClass("ClassesVoid" + i, 1, 5, 100, 5, 3, i, 3, true);
+//            write(GENERATED_PATH + "ClassesVoid" + i + ".java", str);
+//        }
+//
+//
+//        // testing the number of multimethods
+//        System.out.println("Generating test: MethodsVoid");
+//        for (int i : new int[] {1, 2, 4, 5, 10, 20, 25}) {
+//            String str = Generator.generateTestClass("MethodsVoid" + i, i, 5, (100 / i), 5, 3, 3, 3, true);
+//            write(GENERATED_PATH + "MethodsVoid" + i + ".java", str);
+//        }
+//
+//        // testing the number of instances
+//        System.out.println("Generating test: InstancesVoid");
+//        for (int i : new int[] {1, 2, 4, 5, 10, 20, 25}) {
+//            String str = Generator.generateTestClass("InstancesVoid" + i, 1, i, 100, 5, 3, 3, 3, true);
+//            write(GENERATED_PATH + "InstancesVoid" + i + ".java", str);
+//        }
     }
 
 }
