@@ -64,6 +64,8 @@ class Tester:
 
         self.marker = '.'
 
+        self.errors_found = False
+
     def compile(self):
         subprocess.run(["java", "-classpath", "target/classes/", "si.kisek.annotationdispatchtesting.GenerateTestCases"])
 
@@ -184,7 +186,7 @@ class Tester:
                     continue  # skip the default
                 print("")
                 print(processor + ":")
-                # move to target dir and run programs
+                # move to target dir and run the programs
                 os.chdir("classes-" + processor + "/")
 
                 for t in self.test_types:
@@ -194,7 +196,11 @@ class Tester:
                         clazz = t + "_" + str(num)
                         print("%-15s" % clazz, end="")
                         result = subprocess.run(["java", clazz], stdout=subprocess.PIPE)
-                        time = int(result.stdout)
+                        results = result.stdout.splitlines()
+                        if (len(results) > 1):
+                            print("errors during dispatching!")
+                            self.errors_found = True
+                        time = int(results[-1])
                         self.results[processor][t][num].append(time)
                         print("%20d" % time)
                 os.chdir("../")
@@ -390,43 +396,6 @@ class Tester:
             else:
                 fig.savefig('figures/fileSize' + t + 'NoVisitor.pdf', bbox_inches='tight')
 
-    def combined_parameters_plot(self):
-        for t in ["Parameters", "Classes", "Methods", "Instances"]:
-
-            fig = plt.figure(figsize=(7, 7))
-            # fig.suptitle("Visitor comparison with void methods")
-            ax = fig.add_subplot(111)
-            # ax.set_xlabel('Number of Parameters')
-            ax.set_xlabel(self.naslov[t])
-            ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-            # ax.set_ylabel('Compile time [s]')
-            ax.set_ylabel('Čas izvajanja [s]')
-            ax.grid(which='major', linestyle='-')
-            ax.grid(which='minor', linestyle=':')
-
-            legend = []
-
-            proc = "visitor"
-            c1 = 'r'
-            c2 = '#800000'
-
-            for num in ranges[t]:
-                ax.scatter([num] * self.rounds * self.compile_rounds, [(i / 1e9) for i in self.results[proc][t][num]],
-                           marker=self.marker, color=c1)
-            ax.plot(ranges[t], [average(self.results[proc][t][x]) / 1e9 for x in ranges[t]], '-', color=c1)
-            legend.append(mpatches.Patch(color=c1, label="Obiskovalec"))
-
-            for num in ranges[t + "Void"]:
-                ax.scatter([num] * self.rounds * self.compile_rounds,
-                           [(i / 1e9) for i in self.results[proc][t + "Void"][num]], marker=self.marker, color=c2)
-            ax.plot(ranges[t + "Void"],
-                    [average(self.results[proc][t + "Void"][x]) / 1e9 for x in ranges[t + "Void"]], '-', color=c2)
-            legend.append(mpatches.Patch(color=c2, label="Obiskovalec (void)"))
-
-            plt.legend(handles=legend)
-            plt.draw()
-            fig.savefig('figures/speedtest' + t + 'Both.pdf', bbox_inches='tight')
-
 
 def filesize(proc, type, num, prefix=""):
     s = 0
@@ -449,7 +418,7 @@ M = 5 # number of different generated test cases
 
 tester = Tester(N, M, ["visitor", "tree", "reflection", "unmodified"], list(ranges.keys()))
 
-## clean the csv files
+# clean the csv files
 with open('testing_results.csv', 'w') as file:
     print("cleaning the csv file: " + file.name)
 
@@ -483,3 +452,8 @@ tester.plot_file_sizes(False)
 
 total_time = time.time() - total_time
 print("Testing finished in", total_time / 60.0, "minutes.")
+
+if tester.errors_found:
+    print("There were errors found during the test!")
+
+print("\n\n")
