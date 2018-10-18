@@ -12,7 +12,7 @@ from matplotlib.ticker import MaxNLocator
 def average(lst):
     return sum(lst) / len(lst)
 
-
+# uncomment the tests that you want to run
 ranges = {
     'Parameters': [1, 2, 3, 5, 10, 15, 20],
     # 'Classes_1p': [1, 2, 3, 4, 5, 8, 10],
@@ -43,9 +43,9 @@ class Tester:
         self.test_types = test_types
 
         # dictionaries to hold running time, compilation times and file sizes
-        self.results = {proc: {key : {x: [] for x in ranges[key]} for key in ranges.keys()} for proc in processors}
-        self.compile_times = {proc: {key : {x: [] for x in ranges[key]} for key in ranges.keys()} for proc in processors}
-        self.file_sizes = {proc: {key : {x: [] for x in ranges[key]} for key in ranges.keys()} for proc in processors}
+        self.results = {proc: {key: {x: [] for x in ranges[key]} for key in ranges.keys()} for proc in processors}
+        self.compile_times = {proc: {key: {x: [] for x in ranges[key]} for key in ranges.keys()} for proc in processors}
+        self.file_sizes = {proc: {key: {x: [] for x in ranges[key]} for key in ranges.keys()} for proc in processors}
 
         # slovenian translations for the pdf charts
         self.naslov = {}
@@ -61,13 +61,13 @@ class Tester:
             elif (key.startswith("Classes")):
                 self.naslov[key] = "Globina razredne hierarhije"
 
-
         self.marker = '.'
 
         self.errors_found = False
 
     def compile(self):
-        subprocess.run(["java", "-classpath", "target/classes/", "si.kisek.annotationdispatchtesting.GenerateTestCases"])
+        subprocess.run(
+            ["java", "-classpath", "target/classes/", "si.kisek.annotationdispatchtesting.GenerateTestCases"])
 
         print("cd generated-tests/")
         os.chdir("generated-tests/")
@@ -88,7 +88,7 @@ class Tester:
                 for num in ranges[type]:
                     t = time.time()
                     str_processor = "-P" + proc
-                    str_include = "-Dinclude=" + type + "_" +str(num) + ".java"
+                    str_include = "-Dinclude=" + type + "_" + str(num) + ".java"
 
                     print("mvn", "-q", str_processor, str_include, "compile")
                     subprocess.run(["mvn", "-q", str_processor, str_include, "compile"])
@@ -292,6 +292,7 @@ class Tester:
                 fig.savefig('figures/speedtest' + t + '.pdf', bbox_inches='tight')
             else:
                 fig.savefig('figures/speedtest' + t + 'NoVisitor.pdf', bbox_inches='tight')
+            plt.close(fig)
 
     def plot_compile_times(self, includeVisitor=True):
 
@@ -344,6 +345,7 @@ class Tester:
                 fig.savefig('figures/compileTime' + t + '.pdf', bbox_inches='tight')
             else:
                 fig.savefig('figures/compileTime' + t + 'NoVisitor.pdf', bbox_inches='tight')
+            plt.close(fig)
 
     def plot_file_sizes(self, includeVisitor=True):
 
@@ -395,6 +397,7 @@ class Tester:
                 fig.savefig('figures/fileSize' + t + '.pdf', bbox_inches='tight')
             else:
                 fig.savefig('figures/fileSize' + t + 'NoVisitor.pdf', bbox_inches='tight')
+            plt.close(fig)
 
 
 def filesize(proc, type, num, prefix=""):
@@ -413,8 +416,8 @@ print("rebuilding the test generator...")
 print("mvn -q clean compile")
 subprocess.run(["mvn", "-q", "clean", "compile"])
 
-N = 5 # number of repeats per test case
-M = 5 # number of different generated test cases
+N = 5  # number of repeats per test case
+M = 5  # number of different generated test cases
 
 tester = Tester(N, M, ["visitor", "tree", "reflection", "unmodified"], list(ranges.keys()))
 
