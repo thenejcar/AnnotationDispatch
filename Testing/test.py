@@ -275,6 +275,9 @@ class Tester:
                     c = 'g'
                 elif (proc == 'reflection'):
                     labela = "Odsevnost"
+                    c = 'c'
+                elif (proc == 'refl_old'):
+                    labela = "Odsevnost v1"
                     c = 'b'
                 else:
                     labela = proc
@@ -328,6 +331,9 @@ class Tester:
                     c = 'g'
                 elif (proc == 'reflection'):
                     labela = "Odsevnost"
+                    c = 'c'
+                elif (proc == 'refl_old'):
+                    labela = "Odsevnost v1"
                     c = 'b'
                 else:
                     labela = proc
@@ -381,6 +387,9 @@ class Tester:
                     c = 'g'
                 elif (proc == 'reflection'):
                     labela = "Odsevnost"
+                    c = 'c'
+                elif (proc == 'refl_old'):
+                    labela = "Odsevnost v1"
                     c = 'b'
                 else:
                     labela = proc

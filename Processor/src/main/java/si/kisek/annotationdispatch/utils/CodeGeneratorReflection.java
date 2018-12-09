@@ -47,11 +47,11 @@ public class CodeGeneratorReflection {
     }
 
     /*
-    * The 'method table', which is a HashMap that can find a list of methods based on their name and number of parameters
-    * */
+     * The 'method table', which is a HashMap that can find a list of methods based on their name and number of parameters
+     * */
     public JCTree.JCVariableDecl generateMethodMapDecl() {
 
-        // private static Map<String, Map<Integer, List<Method>>> methodMap_xxxx
+        // private static Map<String, List<Method>> methodMap_xxxx
         return tm.VarDef(
                 tm.Modifiers(Flags.PRIVATE | Flags.STATIC),
                 el.getName(methodMapName()),
@@ -60,14 +60,8 @@ public class CodeGeneratorReflection {
                         asJavacList(
                                 tm.Ident(el.getName("String")),
                                 tm.TypeApply(
-                                        tm.Ident(el.getName("Map")),
-                                        asJavacList(
-                                                tm.Ident(el.getName("Integer")),
-                                                tm.TypeApply(
-                                                        tm.Ident(el.getName("List")),
-                                                        javacList(Collections.singletonList(tm.Ident(el.getName("Method"))))
-                                                )
-                                        )
+                                        tm.Ident(el.getName("List")),
+                                        javacList(Collections.singletonList(tm.Ident(el.getName("Method"))))
                                 )
                         )
                 ),
@@ -103,15 +97,9 @@ public class CodeGeneratorReflection {
                                 asJavacList(
                                         tm.Ident(el.getName("String")),
                                         tm.TypeApply(
-                                                tm.Ident(el.getName("Map")),
+                                                tm.Ident(el.getName("List")),
                                                 asJavacList(
-                                                        tm.Ident(el.getName("Integer")),
-                                                        tm.TypeApply(
-                                                                tm.Ident(el.getName("List")),
-                                                                asJavacList(
-                                                                        tm.Ident(el.getName("Method"))
-                                                                )
-                                                        )
+                                                        tm.Ident(el.getName("Method"))
                                                 )
                                         )
                                 )
@@ -127,6 +115,7 @@ public class CodeGeneratorReflection {
             List<JCTree.JCStatement> tryBlock = new ArrayList<>();
 
             // create a list of methods
+            // List list = new ArrayList<Method>();
             Name tmpListName = el.getName("list");
             tryBlock.add(tm.VarDef(
                     tm.Modifiers(0),
@@ -153,14 +142,14 @@ public class CodeGeneratorReflection {
                     null
             ));
 
-            // getting and adding methods is hardcoded in the correct order
+            // getting and adding methods is generated in the correct order
             // method instances are sorted in the same way as in the 'if-instanceof tree' dispatch method
             // we build the if-instanceof tree, and then use DFS to get a flat list of method instances
             List<MethodInstance> sortedInstances = new MethodSwitcher(types, mm, originalMethods.get(mm)).getSortedInstances();
 
             for (MethodInstance instance : sortedInstances) {
-                // for each instance generate a call that looks like
-                //    methodInstances.add(this.getClass().getMethod("mm_name", param1, param2, param3))
+                // for each instance, get the Method object, set it to accessible and add it to the list
+                // method = this.class.getMethod("mm_name", param1, param2, param3);
 
                 List<JCTree.JCExpression> callParameters = new ArrayList<>();
                 callParameters.add(tm.Literal(TypeTag.CLASS, mm.getName().toString()));
@@ -184,12 +173,14 @@ public class CodeGeneratorReflection {
                         )
                 )));
 
+                // method.setAccessible(true);
                 tryBlock.add(tm.Exec(tm.Apply(
                         emptyExpr(),
                         tm.Select(tm.Ident(tmpMethodName), el.getName("setAccessible")),
                         asJavacList(tm.Literal(TypeTag.BOOLEAN, 1))
                 )));
 
+                // list.add(method)
                 tryBlock.add(tm.Exec(tm.Apply(
                         emptyExpr(),
                         tm.Select(tm.Ident(tmpListName), el.getName("add")),
@@ -197,65 +188,24 @@ public class CodeGeneratorReflection {
                 )));
             }
 
-            // add the list to the map with 3 statements
+            // add the list to the map
 
-            // methodMap.putIfAbsent("mm_name", new HashMap<>())
+            // model's id = name + "_" + number of parameters
+            JCTree.JCExpression modelId = tm.Binary(
+                    JCTree.Tag.PLUS,
+                    tm.Literal(TypeTag.CLASS, mm.getName().toString() + "_"),
+                    tm.Literal(TypeTag.INT, mm.getNumParameters())
+            );
+
+            // methodMap.put("methodName_" + numParameters, list)
             tryBlock.add(tm.Exec(tm.Apply(
                     emptyExpr(),
-                    tm.Select(tm.Ident(el.getName(methodMapName())), el.getName("putIfAbsent")),
+                    tm.Select(tm.Ident(el.getName(methodMapName())), el.getName("put")),
                     asJavacList(
-                            tm.Literal(TypeTag.CLASS, mm.getName().toString()),
-                            tm.NewClass(
-                                    null,
-                                    emptyExpr(),
-                                    tm.TypeApply(
-                                            tm.Ident(el.getName("HashMap")),
-                                            asJavacList(
-                                                    tm.Ident(el.getName("Integer")),
-                                                    tm.TypeApply(
-                                                            tm.Ident(el.getName("List")),
-                                                            asJavacList(tm.Ident(el.getName("Method")))
-                                                    )
-                                            )
-                                    ),
-                                    emptyExpr(),
-                                    null
-                            )
-                    )
-            )));
-
-            Name tmpMapName = el.getName("map");
-            // Map<Integer, List<Method> map = methodMap.get("mm_name")
-            tryBlock.add(tm.VarDef(
-                    tm.Modifiers(0),
-                    tmpMapName,
-                    tm.TypeApply(
-                            tm.Ident(el.getName("Map")),
-                            asJavacList(
-                                    tm.Ident(el.getName("Integer")),
-                                    tm.TypeApply(
-                                            tm.Ident(el.getName("List")),
-                                            asJavacList(tm.Ident(el.getName("Method")))
-                                    )
-                            )
-                    ),
-                    tm.Apply(
-                            emptyExpr(),
-                            tm.Select(tm.Ident(el.getName(methodMapName())), el.getName("get")),
-                            asJavacList(tm.Literal(TypeTag.CLASS, mm.getName().toString()))
-                    )
-            ));
-
-            // map.put(123, list)
-            tryBlock.add(tm.Exec(tm.Apply(
-                    emptyExpr(),
-                    tm.Select(tm.Ident(tmpMapName), el.getName("put")),
-                    asJavacList(
-                            tm.Literal(TypeTag.INT, mm.getNumParameters()),
+                            modelId,
                             tm.Ident(tmpListName)
                     )
             )));
-
 
             stats.add(tm.Try(
                     tm.Block(0, javacList(tryBlock)),
@@ -308,8 +258,7 @@ public class CodeGeneratorReflection {
 
 
             // get list of possible methods
-            // List<Method> candidates = methodMap.get("name").get(numParams)
-
+            // List<Method> candidates = methodMap.get("name" + "_" + numParameters))
             Name candidates = el.getName("candidates");
             stats.add(tm.VarDef(
                     tm.Modifiers(0),
@@ -317,15 +266,14 @@ public class CodeGeneratorReflection {
                     tm.TypeApply(tm.Ident(el.getName("List")), asJavacList(tm.Ident(el.getName("Method")))),
                     tm.Apply(
                             emptyExpr(),
-                            tm.Select(
-                                    tm.Apply(
-                                            emptyExpr(),
-                                            tm.Select(tm.Ident(el.getName(methodMapName())), el.getName("get")),
-                                            asJavacList(tm.Literal(TypeTag.CLASS, mm.getName().toString()))
-                                    ),
-                                    el.getName("get")
-                            ),
-                            asJavacList(tm.Literal(TypeTag.INT, mm.getNumParameters()))
+                            tm.Select(tm.Ident(el.getName(methodMapName())), el.getName("get")),
+                            asJavacList(
+                                    tm.Binary(
+                                            JCTree.Tag.PLUS,
+                                            tm.Literal(TypeTag.CLASS, mm.getName().toString() + "_"),
+                                            tm.Literal(TypeTag.INT, mm.getNumParameters())
+                                    )
+                            )
                     )
             ));
 
