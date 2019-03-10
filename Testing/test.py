@@ -12,26 +12,53 @@ from matplotlib.ticker import MaxNLocator
 def average(lst):
     return sum(lst) / len(lst)
 
-# uncomment the tests that you want to run
 ranges = {
     'Parameters': [1, 2, 3, 5, 10, 15, 20],
-    # 'Classes_1p': [1, 2, 3, 4, 5, 8, 10],
-    # 'ClassesWidth_1p': [1, 2, 3, 4, 5, 8, 10],
-    # 'Methods_1p': [1, 2, 4, 5, 10, 20, 25],
-    # 'Instances_1p': [1, 2, 4, 5, 10, 20, 25],
+    'Classes_1p': [1, 2, 3, 4, 5, 8, 10],
+    'ClassesWidth_1p': [1, 2, 3, 4, 5, 8, 10],
+    'Methods_1p': [1, 2, 4, 5, 10, 20, 25],
+    'Instances_1p': [1, 2, 4, 5, 10, 20, 25],
     'Classes_2p': [1, 2, 3, 4, 5, 8, 10],
     'ClassesWidth_2p': [1, 2, 3, 4, 5, 8, 10],
     'Methods_2p': [1, 2, 4, 5, 10, 20, 25],
     'Instances_2p': [1, 2, 4, 5, 10, 20, 25],
-    # 'Classes_3p': [1, 2, 3, 4, 5, 8, 10],
-    # 'ClassesWidth_3p': [1, 2, 3, 4, 5, 8, 10],
-    # 'Methods_3p': [1, 2, 4, 5, 10, 20, 25],
-    # 'Instances_3p': [1, 2, 4, 5, 10, 20, 25],
-    # 'Classes_5p': [1, 2, 3, 4, 5, 8, 10],
-    # 'ClassesWidth_5p': [1, 2, 3, 4, 5, 8, 10],
-    # 'Methods_5p': [1, 2, 4, 5, 10, 20, 25],
-    # 'Instances_5p': [1, 2, 4, 5, 10, 20, 25],
+    'Classes_3p': [1, 2, 3, 4, 5, 8, 10],
+    'ClassesWidth_3p': [1, 2, 3, 4, 5, 8, 10],
+    'Methods_3p': [1, 2, 4, 5, 10, 20, 25],
+    'Instances_3p': [1, 2, 4, 5, 10, 20, 25],
+    'Classes_5p': [1, 2, 3, 4, 5, 8, 10],
+    'ClassesWidth_5p': [1, 2, 3, 4, 5, 8, 10],
+    'Methods_5p': [1, 2, 4, 5, 10, 20, 25],
+    'Instances_5p': [1, 2, 4, 5, 10, 20, 25],
 }
+
+# change this varible to change the language of the output pdf files
+language = "ENG"
+# language = "SLO"
+
+english = {
+    "Število parametrov" : "Number of parameters",
+    "Število modelov": "Number of models",
+    "Število primerkov": "Number of instances",
+    "Širina razredne hierarhije": "Type hierarchy width",
+    "Globina razredne hierarhije": "Type hierarchy depth",
+    'Čas izvajanja [s]': "Execution time [s]",
+    'Čas prevajanja [s]': "Compile time [s]",
+    'Velikost prevedenih datotek [MB]': "Compiled class files size [MB]",
+    "Brez obdelave anotacij" : "Without annotation processing",
+    "Obiskovalec (void)" : "Visitor (void)",
+    "Obiskovalec" : "Visitor",
+    "Odločitevno drevo" : "Explicit type checking",
+    "Odsevnost" : "Reflection",
+    "Odsevnost v1" : "Reflection v1",
+}
+
+# translated phrases are in a dictionary
+def translate(slo_phrase):
+    if language == "SLO":
+        return slo_phrase
+    elif language == "ENG":
+        return english[slo_phrase]
 
 
 class Tester:
@@ -47,19 +74,19 @@ class Tester:
         self.compile_times = {proc: {key: {x: [] for x in ranges[key]} for key in ranges.keys()} for proc in processors}
         self.file_sizes = {proc: {key: {x: [] for x in ranges[key]} for key in ranges.keys()} for proc in processors}
 
-        # slovenian translations for the pdf charts
+        # titles for the pdf charts
         self.naslov = {}
         for key in ranges.keys():
             if (key.startswith("Parameters")):
-                self.naslov[key] = "Število parametrov"
+                self.naslov[key] = translate("Število parametrov")
             elif (key.startswith("Methods")):
-                self.naslov[key] = "Število modelov"
+                self.naslov[key] = translate("Število modelov")
             elif (key.startswith("Instances")):
-                self.naslov[key] = "Število primerkov"
+                self.naslov[key] = translate("Število primerkov")
             elif (key.startswith("ClassesWidth")):
-                self.naslov[key] = "Širina razredne hierarhije"
+                self.naslov[key] = translate("Širina razredne hierarhije")
             elif (key.startswith("Classes")):
-                self.naslov[key] = "Globina razredne hierarhije"
+                self.naslov[key] = translate("Globina razredne hierarhije")
 
         self.marker = '.'
 
@@ -141,7 +168,8 @@ class Tester:
                 times = row[3:-1]
 
                 # overwrite the lists in the results dict
-                self.compile_times[proc][test][num] = [float(x) for x in times]
+                if proc in self.compile_times and test in self.compile_times[proc]:
+                    self.compile_times[proc][test][num] = [float(x) for x in times]
 
     def write_file_sizes(self):
         print("compile times:")
@@ -174,7 +202,8 @@ class Tester:
                 times = row[3:-1]
 
                 # overwrite the lists in the results dict
-                self.file_sizes[proc][test][num] = [float(x) for x in times]
+                if proc in self.file_sizes and test in self.file_sizes[proc]:
+                    self.file_sizes[proc][test][num] = [float(x) for x in times]
 
     def runTest(self):
         print("cd generated-tests/")
@@ -241,7 +270,8 @@ class Tester:
                 results = row[3:-1]
 
                 # overwrite the lists in the results dict
-                self.results[proc][test][num] = [int(x) for x in results]
+                if proc in self.results and test in self.results[proc]:
+                    self.results[proc][test][num] = [int(x) for x in results]
 
     def plot_results(self, includeVisitor=True):
         # plot running speed for all tests
@@ -251,7 +281,7 @@ class Tester:
             ax = fig.add_subplot(111)
             ax.set_xlabel(self.naslov[t])
             ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-            ax.set_ylabel('Čas izvajanja [s]')
+            ax.set_ylabel(translate('Čas izvajanja [s]'))
             ax.grid(which='major', linestyle='-')
             ax.grid(which='minor', linestyle=':')
 
@@ -265,20 +295,20 @@ class Tester:
                         continue
 
                     if t.endswith("Void"):
-                        labela = "Obiskovalec (void)"
+                        labela = translate("Obiskovalec (void)")
                         c = '#800000'
                     else:
-                        labela = "Obiskovalec"
+                        labela = translate("Obiskovalec")
                         c = 'r'
                 elif (proc == 'tree'):
-                    labela = "Odločitevno drevo"
+                    labela = translate("Odločitevno drevo")
                     c = 'g'
                 elif (proc == 'reflection'):
-                    labela = "Odsevnost"
-                    c = 'c'
-                elif (proc == 'refl_old'):
-                    labela = "Odsevnost v1"
+                    labela = translate("Odsevnost")
                     c = 'b'
+                elif (proc == 'refl_old'):
+                    labela = translate("Odsevnost v1")
+                    c = 'c'
                 else:
                     labela = proc
                     c = 'k'
@@ -306,7 +336,7 @@ class Tester:
             ax = fig.add_subplot(111)
             ax.set_xlabel(self.naslov[t])
             ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-            ax.set_ylabel('Čas prevajanja [s]')
+            ax.set_ylabel(translate('Čas prevajanja [s]'))
             ax.grid(which='major', linestyle='-')
             ax.grid(which='minor', linestyle=':')
 
@@ -314,27 +344,27 @@ class Tester:
 
             for proc in self.processors:
                 if (proc == 'unmodified'):
-                    labela = "Brez obdelave anotacij"
+                    labela = translate("Brez obdelave anotacij")
                     c = 'k'
                 elif (proc == 'visitor'):
                     if (not includeVisitor):
                         continue
 
                     if t.endswith("Void"):
-                        labela = "Obiskovalec (void)"
+                        labela = translate("Obiskovalec (void)")
                         c = '#800000'
                     else:
-                        labela = "Obiskovalec"
+                        labela = translate("Obiskovalec")
                         c = 'r'
                 elif (proc == 'tree'):
-                    labela = "Odločitevno drevo"
+                    labela = translate("Odločitevno drevo")
                     c = 'g'
                 elif (proc == 'reflection'):
-                    labela = "Odsevnost"
-                    c = 'c'
-                elif (proc == 'refl_old'):
-                    labela = "Odsevnost v1"
+                    labela = translate("Odsevnost")
                     c = 'b'
+                elif (proc == 'refl_old'):
+                    labela = translate("Odsevnost v1")
+                    c = 'c'
                 else:
                     labela = proc
                     c = 'k'
@@ -362,7 +392,7 @@ class Tester:
             ax = fig.add_subplot(111)
             ax.set_xlabel(self.naslov[t])
             ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-            ax.set_ylabel('Velikost prevedenih datotek [MB]')
+            ax.set_ylabel(translate('Velikost prevedenih datotek [MB]'))
             ax.grid(which='major', linestyle='-')
             ax.grid(which='minor', linestyle=':')
 
@@ -370,27 +400,27 @@ class Tester:
 
             for proc in self.processors:
                 if (proc == 'unmodified'):
-                    labela = "Brez obdelave anotacij"
+                    labela = translate("Brez obdelave anotacij")
                     c = 'k'
                 elif (proc == 'visitor'):
                     if (not includeVisitor):
                         continue
 
                     if t.endswith("Void"):
-                        labela = "Obiskovalec (void)"
+                        labela = translate("Obiskovalec (void)")
                         c = '#800000'
                     else:
-                        labela = "Obiskovalec"
+                        labela = translate("Obiskovalec")
                         c = 'r'
                 elif (proc == 'tree'):
-                    labela = "Odločitevno drevo"
+                    labela = translate("Odločitevno drevo")
                     c = 'g'
                 elif (proc == 'reflection'):
-                    labela = "Odsevnost"
-                    c = 'c'
-                elif (proc == 'refl_old'):
-                    labela = "Odsevnost v1"
+                    labela = translate("Odsevnost")
                     c = 'b'
+                elif (proc == 'refl_old'):
+                    labela = translate("Odsevnost v1")
+                    c = 'c'
                 else:
                     labela = proc
                     c = 'k'
@@ -417,55 +447,152 @@ def filesize(proc, type, num, prefix=""):
     return s / 1e6
 
 
-# main
 
-total_time = time.time()
 
-print("rebuilding the test generator...")
-print("mvn -q clean compile")
-subprocess.run(["mvn", "-q", "clean", "compile"])
+##########################################
+# Code for starting the tests
+##########################################
 
-N = 5  # number of repeats per test case
-M = 5  # number of different generated test cases
 
-tester = Tester(N, M, ["visitor", "tree", "reflection", "unmodified"], list(ranges.keys()))
+# runs all the tests and plots all the plots
+def real_run():
 
-# clean the csv files
-with open('testing_results.csv', 'w') as file:
-    print("cleaning the csv file: " + file.name)
+    # uncomment the tests that you want to run
+    tests = [
+        'Parameters',
+        # 'Classes_1p',
+        # 'ClassesWidth_1p',
+        # 'Methods_1p',
+        # 'Instances_1p',
+        'Classes_2p',
+        'ClassesWidth_2p',
+        'Methods_2p',
+        'Instances_2p',
+        # 'Classes_3p',
+        # 'ClassesWidth_3p',
+        # 'Methods_3p',
+        # 'Instances_3p',
+        # 'Classes_5p',
+        # 'ClassesWidth_5p',
+        # 'Methods_5p',
+        # 'Instances_5p'
+    ]
 
-with open('compile_times.csv', 'w') as file:
-    print("cleaning the csv file: " + file.name)
+    total_time = time.time()
 
-with open('file_sizes.csv', 'w') as file:
-    print("cleaning the csv file: " + file.name)
+    print("rebuilding the test generator...")
+    print("mvn -q clean compile")
+    subprocess.run(["mvn", "-q", "clean", "compile"])
 
-for i in range(0, M):
-     print("Test cases ", i)
-     tester.compile()
-     tester.runTest()
+    N = 5  # number of repeats per test case
+    M = 5  # number of different generated test cases
 
-tester.write_results()
-tester.write_compile_times()
-tester.write_file_sizes()
+    tester = Tester(N, M, ["visitor", "tree", "reflection", "unmodified"], tests)
 
-#tester.read_results()
-tester.plot_results()
-tester.plot_results(False)
-# tester.combined_parameters_plot()
+    # clean the csv files
+    with open('testing_results.csv', 'w') as file:
+        print("cleaning the csv file: " + file.name)
 
-#tester.read_compile_times()
-tester.plot_compile_times()
-tester.plot_compile_times(False)
+    with open('compile_times.csv', 'w') as file:
+        print("cleaning the csv file: " + file.name)
 
-#tester.read_file_sizes()
-tester.plot_file_sizes()
-tester.plot_file_sizes(False)
+    with open('file_sizes.csv', 'w') as file:
+        print("cleaning the csv file: " + file.name)
 
-total_time = time.time() - total_time
-print("Testing finished in", total_time / 60.0, "minutes.")
+    for i in range(0, M):
+        print("Test cases ", i)
+        tester.compile()
+        tester.runTest()
 
-if tester.errors_found:
-    print("There were errors found during the test!")
+    tester.write_results()
+    tester.write_compile_times()
+    tester.write_file_sizes()
 
-print("\n\n")
+    #tester.read_results()
+    tester.plot_results()
+    tester.plot_results(False)
+    # tester.combined_parameters_plot()
+
+    #tester.read_compile_times()
+    tester.plot_compile_times()
+    tester.plot_compile_times(False)
+
+    #tester.read_file_sizes()
+    tester.plot_file_sizes()
+    tester.plot_file_sizes(False)
+
+    total_time = time.time() - total_time
+    print("Testing finished in", total_time / 60.0, "minutes.")
+
+    if tester.errors_found:
+        print("There were errors found during the test!")
+
+    print("\n\n")
+
+
+# uses existing csv files to draw the plots again
+def redraw_plots():
+    total_time = time.time()
+
+    N = 5  # number of repeats per test case
+    M = 5  # number of different generated test cases
+
+    # uncomment the tests that you want to run
+    tests = [
+        'Parameters',
+        'Classes_1p',
+        'ClassesWidth_1p',
+        'Methods_1p',
+        'Instances_1p',
+        'Classes_2p',
+        'ClassesWidth_2p',
+        'Methods_2p',
+        'Instances_2p',
+        'Classes_3p',
+        'ClassesWidth_3p',
+        'Methods_3p',
+        'Instances_3p',
+        'Classes_5p',
+        'ClassesWidth_5p',
+        'Methods_5p',
+        'Instances_5p'
+    ]
+
+
+    tester = Tester(N, M, ["visitor", "tree", "reflection", "unmodified"], tests)
+
+    tester.read_results()
+    tester.plot_results()
+    tester.plot_results(False)
+
+    # for the compile and filesize plots we don't need all the tests
+    tests = [
+        'Parameters',
+        'Classes_2p',
+        'ClassesWidth_2p',
+        'Methods_2p',
+        'Instances_2p'
+    ]
+
+    tester = Tester(N, M, ["visitor", "tree", "reflection", "unmodified"], tests)
+
+    tester.read_results()
+    tester.plot_results()
+    tester.plot_results(False)
+
+    tester.read_compile_times()
+    tester.plot_compile_times()
+    tester.plot_compile_times(False)
+
+    tester.read_file_sizes()
+    tester.plot_file_sizes()
+    tester.plot_file_sizes(False)
+
+    total_time = time.time() - total_time
+    print("Redrawing plots finished in", total_time / 60.0, "minutes.")
+
+    print("\n\n")
+
+
+
+redraw_plots()
